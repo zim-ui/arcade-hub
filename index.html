@@ -304,5 +304,262 @@ const arcadeDB = window.supabase.createClient(
 );
 </script>
 
+
+<style>
+#authOverlay {
+  position:fixed; inset:0; z-index:9999;
+  display:none; align-items:center; justify-content:center;
+  padding:20px; background:rgba(2,5,12,.86);
+  backdrop-filter:blur(12px);
+}
+#authOverlay.show {display:flex}
+#authModal {
+  width:100%; max-width:420px; padding:30px;
+  background:linear-gradient(145deg,#151e30,#0b111d);
+  border:1px solid #35415b; border-radius:16px;
+  box-shadow:0 25px 90px #000b;
+  position:relative;
+}
+#authModal h2 {
+  font-family:Orbitron,sans-serif; text-align:center;
+  color:#edf3fc; font-size:22px;
+}
+#authModal .auth-sub {
+  text-align:center; color:#8795aa; font-size:12px;
+  margin:10px 0 25px;
+}
+#authModal input {
+  width:100%; padding:14px; margin:7px 0;
+  color:white; background:#0b1220;
+  border:1px solid #34435a; border-radius:7px;
+  outline:none;
+}
+#authModal input:focus {border-color:#7c5cff}
+#authModal .auth-submit {
+  width:100%; padding:14px; margin-top:14px;
+  background:#7c5cff; color:white; border:0;
+  border-radius:7px; font-weight:800;
+}
+#authModal .auth-switch {
+  text-align:center; color:#aab8cb; font-size:13px;
+  margin-top:20px;
+}
+#authModal .auth-switch button {
+  color:#39d5d0; background:none; border:0;
+  font-weight:700;
+}
+#authClose {
+  position:absolute; right:15px; top:12px;
+  background:none; color:#8795aa; border:0;
+  font-size:25px;
+}
+#authMessage {
+  color:#39d5d0; text-align:center;
+  font-size:12px; margin-top:12px; line-height:1.5;
+}
+#authModal .auth-error {color:#ff7777}
+#profile .profile-email {
+  color:#39d5d0; font-size:13px;
+}
+@media(max-width:450px) {
+  #authModal {padding:24px 19px}
+}
+</style>
+
+<div id="authOverlay">
+  <div id="authModal">
+    <button id="authClose" type="button">&times;</button>
+    <div class="eyebrow" style="text-align:center">ARCADE HUB ACCOUNT</div>
+    <h2 id="authTitle">WELCOME BACK</h2>
+    <p class="auth-sub" id="authSubtitle">Đăng nhập để tiếp tục cuộc chơi.</p>
+
+    <form id="authForm">
+      <input id="authName" type="text" placeholder="Tên người chơi" maxlength="24" style="display:none">
+      <input id="authEmail" type="email" placeholder="Địa chỉ email" required autocomplete="email">
+      <input id="authPassword" type="password" placeholder="Mật khẩu" required minlength="6" autocomplete="current-password">
+      <input id="authConfirm" type="password" placeholder="Nhập lại mật khẩu" style="display:none" minlength="6">
+      <button class="auth-submit" id="authSubmit" type="submit">ĐĂNG NHẬP</button>
+    </form>
+
+    <div id="authMessage" role="status"></div>
+    <div class="auth-switch">
+      <span id="authSwitchText">Chưa có tài khoản?</span>
+      <button type="button" id="authSwitch">Đăng ký ngay</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const overlay = $('authOverlay');
+  let mode = 'login';
+  let currentUser = null;
+
+  function openAuth() {
+    overlay.classList.add('show');
+    $('authMessage').textContent = '';
+  }
+
+  function closeAuth() {
+    overlay.classList.remove('show');
+  }
+
+  function setMessage(message, error = false) {
+    $('authMessage').textContent = message;
+    $('authMessage').classList.toggle('auth-error', error);
+  }
+
+  function setMode(next) {
+    mode = next;
+    const registering = mode === 'register';
+    $('authTitle').textContent = registering ? 'CREATE ACCOUNT' : 'WELCOME BACK';
+    $('authSubtitle').textContent = registering
+      ? 'Tạo tài khoản để lưu thành tích của bạn.'
+      : 'Đăng nhập để tiếp tục cuộc chơi.';
+    $('authName').style.display = registering ? 'block' : 'none';
+    $('authConfirm').style.display = registering ? 'block' : 'none';
+    $('authPassword').autocomplete = registering ? 'new-password' : 'current-password';
+    $('authSubmit').textContent = registering ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
+    $('authSwitchText').textContent = registering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
+    $('authSwitch').textContent = registering ? 'Đăng nhập' : 'Đăng ký ngay';
+    $('authMessage').textContent = '';
+    $('authName').required = registering;
+    $('authConfirm').required = registering;
+  }
+
+  $('authSwitch').addEventListener('click', () => {
+    setMode(mode === 'login' ? 'register' : 'login');
+  });
+  $('authClose').addEventListener('click', closeAuth);
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeAuth();
+  });
+
+  async function updateUser(user) {
+    currentUser = user;
+
+    const loginButton = document.querySelector('header .login');
+    const profile = document.querySelector('#profile .profile-box');
+
+    if (user) {
+      let displayName = user.user_metadata?.display_name || user.email;
+      const { data } = await arcadeDB
+        .from('profiles')
+        .select('username, display_name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (data) displayName = data.display_name || data.username || displayName;
+
+      loginButton.textContent = 'ĐĂNG XUẤT';
+      loginButton.onclick = async () => {
+        const { error } = await arcadeDB.auth.signOut();
+        if (error) alert(error.message);
+      };
+
+      profile.innerHTML = `
+        <div class="avatar">👤</div>
+        <h2>${escapeText(displayName)}</h2>
+        <p class="profile-email">${escapeText(user.email || '')}</p>
+        <p style="color:var(--muted)">Chào mừng bạn trở lại Arcade Hub!</p>
+        <button class="primary" id="profileLogout">ĐĂNG XUẤT</button>
+      `;
+      $('profileLogout').onclick = async () => {
+        const { error } = await arcadeDB.auth.signOut();
+        if (error) alert(error.message);
+      };
+    } else {
+      loginButton.textContent = 'ĐĂNG NHẬP';
+      loginButton.onclick = openAuth;
+      profile.innerHTML = `
+        <div class="avatar">👤</div>
+        <h2>GUEST PLAYER</h2>
+        <p style="color:var(--muted)">Bạn chưa đăng nhập vào Arcade Hub.</p>
+        <button class="primary" id="profileLogin">ĐĂNG NHẬP</button>
+      `;
+      $('profileLogin').onclick = openAuth;
+    }
+  }
+
+  function escapeText(value) {
+    return String(value).replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;',
+      '"':'&quot;', "'":'&#39;'
+    })[c]);
+  }
+
+  $('authForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('authEmail').value.trim();
+    const password = $('authPassword').value;
+    const submit = $('authSubmit');
+
+    submit.disabled = true;
+    submit.textContent = 'ĐANG XỬ LÝ...';
+    setMessage('');
+
+    try {
+      if (mode === 'register') {
+        const name = $('authName').value.trim();
+        if (!name) throw new Error('Vui lòng nhập tên người chơi.');
+        if (password !== $('authConfirm').value) {
+          throw new Error('Hai mật khẩu không khớp.');
+        }
+
+        const { data, error } = await arcadeDB.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { display_name: name }
+          }
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          setMessage('Đăng ký thành công!');
+          await updateUser(data.user);
+          setTimeout(closeAuth, 1000);
+        } else {
+          setMessage('Đăng ký thành công! Hãy kiểm tra email để xác nhận tài khoản.');
+        }
+      } else {
+        const { data, error } = await arcadeDB.auth.signInWithPassword({
+          email, password
+        });
+        if (error) throw error;
+        await updateUser(data.user);
+        setMessage('Đăng nhập thành công!');
+        setTimeout(closeAuth, 800);
+      }
+    } catch (error) {
+      setMessage(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.', true);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = mode === 'register' ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
+    }
+  });
+
+  $('authOverlay').addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAuth();
+  });
+
+  arcadeDB.auth.onAuthStateChange((event, session) => {
+    updateUser(session?.user || null);
+  });
+
+  arcadeDB.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('Supabase session:', error);
+      return;
+    }
+    updateUser(data.session?.user || null);
+  });
+
+  document.querySelector('header .login').onclick = openAuth;
+  document.querySelector('#profile .primary').onclick = openAuth;
+})();
+</script>
+
 </body>
 </html>
