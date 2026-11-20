@@ -390,12 +390,12 @@ const arcadeDB = window.supabase.createClient(
 </div>
 
 
+
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const overlay = $('authOverlay');
   let mode = 'login';
-  let currentUser = null;
 
   function openAuth() {
     overlay.classList.add('show');
@@ -413,11 +413,8 @@ const arcadeDB = window.supabase.createClient(
 
   function escapeText(value) {
     return String(value ?? '').replace(/[&<>"']/g, c => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
+      '&': '&amp;', '<': '&lt;', '>': '&gt;',
+      '"': '&quot;', "'": '&#39;'
     })[c]);
   }
 
@@ -429,127 +426,24 @@ const arcadeDB = window.supabase.createClient(
     $('authSubtitle').textContent = registering
       ? 'Tạo tài khoản để lưu thành tích của bạn.'
       : 'Đăng nhập để tiếp tục cuộc chơi.';
-
     $('authName').style.display = registering ? 'block' : 'none';
     $('authConfirm').style.display = registering ? 'block' : 'none';
     $('authPassword').autocomplete = registering ? 'new-password' : 'current-password';
     $('authSubmit').textContent = registering ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
     $('authSwitchText').textContent = registering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
     $('authSwitch').textContent = registering ? 'Đăng nhập' : 'Đăng ký ngay';
-    $('authMessage').textContent = '';
-
     $('authName').required = registering;
     $('authConfirm').required = registering;
+    setMessage('');
   }
 
   async function updateUser(user) {
-    currentUser = user;
-
     const loginButton = document.querySelector('header .login');
     const profile = document.querySelector('#profile .profile-box');
 
     if (!loginButton || !profile) return;
 
-    if (user) {
-      let displayName = user.user_metadata?.display_name || user.email || 'Player';
-      let username = 'player';
-      let avatarUrl = '';
-      let level = 1;
-      let totalXP = 0;
-
-      const { data: profileData, error: profileError } = await arcadeDB
-        .from('profiles')
-        .select('username, display_name, avatar_url, level, total_xp')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Profile error:', profileError);
-      }
-
-      if (profileData) {
-        displayName = profileData.display_name || profileData.username || displayName;
-        username = profileData.username || username;
-        avatarUrl = profileData.avatar_url || '';
-        level = profileData.level || 1;
-        totalXP = Number(profileData.total_xp) || 0;
-      }
-
-      const { data: statsData, error: statsError } = await arcadeDB
-        .from('player_stats')
-        .select('games_played, total_score, best_score')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (statsError) {
-        console.error('Stats error:', statsError);
-      }
-
-      const gamesPlayed = Number(statsData?.games_played) || 0;
-      const totalScore = Number(statsData?.total_score) || 0;
-      const bestScore = Number(statsData?.best_score) || 0;
-
-      const xpProgress = totalXP % 1000;
-
-      const avatarHTML = avatarUrl
-        ? `<img src="${escapeText(avatarUrl)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-        : '👤';
-
-      loginButton.textContent = 'ĐĂNG XUẤT';
-      loginButton.onclick = async () => {
-        const { error } = await arcadeDB.auth.signOut();
-        if (error) alert(error.message);
-      };
-
-      profile.innerHTML = `
-        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-          <div class="avatar" style="width:85px;height:85px;overflow:hidden;flex-shrink:0">
-            ${avatarHTML}
-          </div>
-          <div>
-            <h2 style="margin:0 0 8px">${escapeText(displayName)}</h2>
-            <p class="profile-email">${escapeText(user.email || '')}</p>
-            <p style="color:var(--muted);font-size:12px">@${escapeText(username)}</p>
-          </div>
-        </div>
-
-        <div style="margin-top:30px;padding:20px;background:#0b1220;border:1px solid var(--line);border-radius:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <strong style="font-family:Orbitron,sans-serif;color:var(--cyan)">LEVEL ${level}</strong>
-            <span style="font-size:12px;color:var(--muted)">${totalXP.toLocaleString()} EXP</span>
-          </div>
-          <div style="height:9px;background:#263244;border-radius:20px;margin-top:14px;overflow:hidden">
-            <div style="height:100%;width:${xpProgress / 10}%;background:linear-gradient(90deg,#7c5cff,#39d5d0);border-radius:20px"></div>
-          </div>
-          <p style="font-size:11px;color:var(--muted);margin-bottom:0">
-            ${xpProgress} / 1000 EXP trong mốc hiển thị tiếp theo
-          </p>
-        </div>
-
-        <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px">
-          <div class="stat">
-            <strong>${totalScore.toLocaleString()}</strong>
-            <p>TỔNG ĐIỂM</p>
-          </div>
-          <div class="stat">
-            <strong>${gamesPlayed.toLocaleString()}</strong>
-            <p>LƯỢT GHI ĐIỂM</p>
-          </div>
-          <div class="stat">
-            <strong>${bestScore.toLocaleString()}</strong>
-            <p>ĐIỂM CAO NHẤT</p>
-          </div>
-        </div>
-
-        <button class="primary" id="profileLogout">ĐĂNG XUẤT</button>
-      `;
-
-      $('profileLogout').onclick = async () => {
-        const { error } = await arcadeDB.auth.signOut();
-        if (error) alert(error.message);
-      };
-
-    } else {
+    if (!user) {
       loginButton.textContent = 'ĐĂNG NHẬP';
       loginButton.onclick = openAuth;
 
@@ -561,7 +455,90 @@ const arcadeDB = window.supabase.createClient(
       `;
 
       $('profileLogin').onclick = openAuth;
+      return;
     }
+
+    let displayName = user.user_metadata?.display_name || user.email || 'Player';
+    let username = 'player';
+    let avatarUrl = '';
+    let level = 1;
+    let totalXP = 0;
+
+    const { data: p, error: pe } = await arcadeDB
+      .from('profiles')
+      .select('username, display_name, avatar_url, level, total_xp')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (pe) console.error('Profile error:', pe);
+
+    if (p) {
+      displayName = p.display_name || p.username || displayName;
+      username = p.username || username;
+      avatarUrl = p.avatar_url || '';
+      level = Number(p.level) || 1;
+      totalXP = Number(p.total_xp) || 0;
+    }
+
+    const { data: s, error: se } = await arcadeDB
+      .from('player_stats')
+      .select('games_played, total_score, best_score')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (se) console.error('Stats error:', se);
+
+    const gamesPlayed = Number(s?.games_played) || 0;
+    const totalScore = Number(s?.total_score) || 0;
+    const bestScore = Number(s?.best_score) || 0;
+    const xpProgress = totalXP % 1000;
+
+    const avatarHTML = avatarUrl
+      ? `<img src="${escapeText(avatarUrl)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : '👤';
+
+    loginButton.textContent = 'ĐĂNG XUẤT';
+    loginButton.onclick = async () => {
+      const { error } = await arcadeDB.auth.signOut();
+      if (error) alert(error.message);
+    };
+
+    profile.innerHTML = `
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="avatar" style="width:85px;height:85px;overflow:hidden;flex-shrink:0">
+          ${avatarHTML}
+        </div>
+        <div>
+          <h2 style="margin:0 0 8px">${escapeText(displayName)}</h2>
+          <p class="profile-email">${escapeText(user.email || '')}</p>
+          <p style="color:var(--muted);font-size:12px">@${escapeText(username)}</p>
+        </div>
+      </div>
+
+      <div style="margin-top:30px;padding:20px;background:#0b1220;border:1px solid var(--line);border-radius:10px">
+        <div style="display:flex;justify-content:space-between">
+          <strong style="font-family:Orbitron,sans-serif;color:var(--cyan)">LEVEL ${level}</strong>
+          <span style="font-size:12px;color:var(--muted)">${totalXP.toLocaleString()} EXP</span>
+        </div>
+        <div style="height:9px;background:#263244;border-radius:20px;margin-top:14px;overflow:hidden">
+          <div style="height:100%;width:${xpProgress / 10}%;background:linear-gradient(90deg,#7c5cff,#39d5d0)"></div>
+        </div>
+        <p style="font-size:11px;color:var(--muted)">${xpProgress} / 1000 EXP</p>
+      </div>
+
+      <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px">
+        <div class="stat"><strong>${totalScore.toLocaleString()}</strong><p>TỔNG ĐIỂM</p></div>
+        <div class="stat"><strong>${gamesPlayed.toLocaleString()}</strong><p>LƯỢT GHI ĐIỂM</p></div>
+        <div class="stat"><strong>${bestScore.toLocaleString()}</strong><p>ĐIỂM CAO NHẤT</p></div>
+      </div>
+
+      <button class="primary" id="profileLogout">ĐĂNG XUẤT</button>
+    `;
+
+    $('profileLogout').onclick = async () => {
+      const { error } = await arcadeDB.auth.signOut();
+      if (error) alert(error.message);
+    };
   }
 
   $('authSwitch').addEventListener('click', () => {
@@ -594,7 +571,6 @@ const arcadeDB = window.supabase.createClient(
         const name = $('authName').value.trim();
 
         if (!name) throw new Error('Vui lòng nhập tên người chơi.');
-
         if (password !== $('authConfirm').value) {
           throw new Error('Hai mật khẩu không khớp.');
         }
@@ -602,9 +578,7 @@ const arcadeDB = window.supabase.createClient(
         const { data, error } = await arcadeDB.auth.signUp({
           email,
           password,
-          options: {
-            data: { display_name: name }
-          }
+          options: { data: { display_name: name } }
         });
 
         if (error) throw error;
@@ -616,7 +590,6 @@ const arcadeDB = window.supabase.createClient(
         } else {
           setMessage('Đăng ký thành công! Hãy kiểm tra email để xác nhận tài khoản.');
         }
-
       } else {
         const { data, error } = await arcadeDB.auth.signInWithPassword({
           email,
@@ -629,10 +602,8 @@ const arcadeDB = window.supabase.createClient(
         setMessage('Đăng nhập thành công!');
         setTimeout(closeAuth, 800);
       }
-
     } catch (error) {
       setMessage(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.', true);
-
     } finally {
       submit.disabled = false;
       submit.textContent = mode === 'register' ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
@@ -648,18 +619,13 @@ const arcadeDB = window.supabase.createClient(
       console.error('Supabase session:', error);
       return;
     }
-
     updateUser(data.session?.user || null);
   });
 
-  loginButtonSetup();
-
-  function loginButtonSetup() {
-    const loginButton = document.querySelector('header .login');
-    if (loginButton) loginButton.onclick = openAuth;
-  }
+  document.querySelector('header .login').onclick = openAuth;
 })();
 </script>
+
 
 </body>
 </html>
