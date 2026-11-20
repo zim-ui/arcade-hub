@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCADE HUB — Play Beyond Limits</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg:#080b12;
+  --panel:#101622;
+  --panel2:#151e2c;
+  --line:#263244;
+  --text:#edf3fc;
+  --muted:#8795aa;
+  --accent:#7c5cff;
+  --cyan:#39d5d0;
+}
+*{box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,sans-serif;
+}
+button{font:inherit;cursor:pointer}
+header {
+  height:76px;
+  border-bottom:1px solid #1d2736;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 7%;
+  background:#0b1019;
+  position:sticky;top:0;z-index:10;
+}
+.logo {
+  font-family:Orbitron,sans-serif;
+  font-size:22px;font-weight:800;letter-spacing:2px;
+}
+.logo span{color:var(--cyan)}
+nav{display:flex;gap:30px}
+nav button {
+  background:none;border:0;color:var(--muted);
+  font-size:13px;font-weight:600;
+}
+nav button.active,nav button:hover{color:white}
+.login {
+  background:var(--accent);color:white;border:0;
+  padding:11px 21px;border-radius:7px;font-weight:700;
+}
+.container{width:min(1120px,88%);margin:auto}
+.page{display:none;padding:55px 0 90px}
+.page.active{display:block}
+.hero {
+  min-height:340px;border:1px solid #283347;
+  border-radius:17px;padding:48px;
+  background:
+  radial-gradient(ellipse at 80% 20%,#49338b55,transparent 45%),
+  radial-gradient(ellipse at 20% 100%,#087d8050,transparent 45%),
+  linear-gradient(125deg,#151d30,#0d1421 65%,#17142b);
+  position:relative;overflow:hidden;
+}
+.hero:after {
+  content:"";position:absolute;width:290px;height:290px;
+  border:1px solid #ffffff16;border-radius:50%;
+  right:8%;top:25px;
+  box-shadow:0 0 0 35px #ffffff06,0 0 0 70px #ffffff04;
+}
+.eyebrow {
+  color:var(--cyan);font-size:11px;font-weight:800;
+  letter-spacing:3px;
+}
+h1 {
+  font-family:Orbitron,sans-serif;
+  font-size:clamp(30px,5vw,53px);
+  max-width:600px;line-height:1.2;margin:17px 0;
+}
+.hero p{color:#a8b5c8;max-width:490px;line-height:1.8;font-size:14px}
+.primary {
+  margin-top:17px;background:var(--cyan);color:#061316;
+  border:0;border-radius:6px;padding:14px 23px;font-weight:800;
+}
+.section-head {
+  display:flex;align-items:center;justify-content:space-between;
+  margin:48px 0 20px;
+}
+h2{font-family:Orbitron,sans-serif;font-size:19px;letter-spacing:1px}
+.section-head small{color:var(--muted)}
+.games {
+  display:grid;grid-template-columns:repeat(3,1fr);gap:19px;
+}
+.game-card {
+  border:1px solid var(--line);background:var(--panel);
+  border-radius:12px;overflow:hidden;transition:.2s;
+}
+.game-card:hover{transform:translateY(-5px);border-color:#7562dc}
+.game-art {
+  height:170px;display:grid;place-items:center;
+  font-size:57px;position:relative;overflow:hidden;
+}
+.space {
+  background:radial-gradient(circle at 50% 50%,#244c70,#101a30 55%,#090e18);
+}
+.coming {
+  background:radial-gradient(circle at 50% 50%,#55336d,#171529 60%,#0c1020);
+}
+.racing {
+  background:radial-gradient(circle at 50% 50%,#733c35,#23182a 65%,#0d1019);
+}
+.game-info{padding:18px}
+.game-info h3{margin:0 0 8px;font-size:16px}
+.game-info p{font-size:12px;color:var(--muted);line-height:1.6;min-height:38px}
+.tag {
+  display:inline-block;color:var(--cyan);font-size:10px;
+  background:#39d5d014;padding:5px 8px;border-radius:4px;
+}
+.play {
+  width:100%;margin-top:15px;background:#202b3d;
+  color:white;border:1px solid #34435a;
+  border-radius:6px;padding:10px;font-weight:700;
+}
+.play:hover{background:#34435a}
+.stats {
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:15px;margin-top:25px;
+}
+.stat {
+  padding:22px;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;
+}
+.stat strong{font:700 24px Orbitron,sans-serif}
+.stat p{color:var(--muted);font-size:12px;margin-bottom:0}
+table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:17px;border-bottom:1px solid var(--line);font-size:13px}
+th{color:var(--muted);font-size:11px;letter-spacing:1px}
+td:last-child{color:var(--cyan);font-weight:700}
+.notice {
+  border:1px solid #34435a;background:#111b29;
+  color:#aab8cb;border-radius:8px;padding:14px;
+  font-size:12px;line-height:1.7;margin-top:20px;
+}
+.profile-box {
+  padding:30px;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;
+}
+.avatar {
+  width:65px;height:65px;border-radius:50%;
+  display:grid;place-items:center;background:#28224b;font-size:28px;
+}
+footer {
+  border-top:1px solid var(--line);padding:30px 7%;
+  color:var(--muted);font-size:12px;text-align:center;
+}
+@media(max-width:750px){
+  header{padding:0 5%;height:auto;min-height:70px;flex-wrap:wrap;gap:15px;padding-top:15px;padding-bottom:15px}
+  nav{order:3;width:100%;justify-content:space-between;gap:8px}
+  nav button{font-size:11px}
+  .container{width:90%}
+  .hero{padding:30px 23px}
+  .games{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr}
+  .page{padding-top:30px}
+  th,td{padding:12px 8px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ARCADE<span>HUB</span></div>
+  <nav>
+    <button class="active" data-page="home">Trang chủ</button>
+    <button data-page="games">Trò chơi</button>
+    <button data-page="leaderboard">Xếp hạng</button>
+    <button data-page="profile">Hồ sơ</button>
+  </nav>
+  <button class="login" onclick="alert('Hệ thống đăng nhập sẽ được kết nối ở bước tiếp theo!')">Đăng nhập</button>
+</header>
+
+<main class="container">
+
+<section class="page active" id="home">
+  <div class="hero">
+    <div class="eyebrow">WELCOME TO YOUR GAMING UNIVERSE</div>
+    <h1>PLAY BEYOND LIMITS.</h1>
+    <p>Một thế giới game của riêng bạn. Khám phá những trò chơi thú vị, chinh phục thử thách và cạnh tranh với những người chơi khác.</p>
+    <button class="primary" onclick="showPage('games')">KHÁM PHÁ GAME →</button>
+  </div>
+
+  <div class="section-head">
+    <h2>FEATURED GAMES</h2><small>GAME NỔI BẬT</small>
+  </div>
+  <div class="games">
+    <article class="game-card">
+      <div class="game-art space">🚀</div>
+      <div class="game-info">
+        <span class="tag">SPACE SHOOTER</span>
+        <h3>Deep Space Defense</h3>
+        <p>Điều khiển phi thuyền, tiêu diệt kẻ địch và đối đầu với những con boss nguy hiểm.</p>
+        <button class="play" onclick="alert('Game sẽ được tích hợp ở bước tiếp theo!')">CHƠI GAME →</button>
+      </div>
+    </article>
+    <article class="game-card">
+      <div class="game-art coming">⚔️</div>
+      <div class="game-info">
+        <span class="tag">COMING SOON</span>
+        <h3>Project Combat</h3>
+        <p>Một trò chơi hành động mới đang được phát triển.</p>
+        <button class="play" onclick="alert('Sắp ra mắt!')">SẮP RA MẮT</button>
+      </div>
+    </article>
+    <article class="game-card">
+      <div class="game-art racing">🏎️</div>
+      <div class="game-info">
+        <span class="tag">COMING SOON</span>
+        <h3>Neon Racing</h3>
+        <p>Những cuộc đua tốc độ trong thế giới tương lai.</p>
+        <button class="play" onclick="alert('Sắp ra mắt!')">SẮP RA MẮT</button>
+      </div>
+    </article>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><strong>01</strong><p>GAME ĐANG LÊN KẾ HOẠCH TÍCH HỢP</p></div>
+    <div class="stat"><strong>∞</strong><p>THỬ THÁCH ĐANG CHỜ BẠN</p></div>
+    <div class="stat"><strong>01</strong><p>NỀN TẢNG GAME RIÊNG</p></div>
+  </div>
+</section>
+
+<section class="page" id="games">
+  <div class="eyebrow">EXPLORE THE ARCADE</div>
+  <h1>GAME LIBRARY</h1>
+  <p style="color:var(--muted)">Khám phá toàn bộ trò chơi trong Arcade Hub.</p>
+  <div class="games" style="margin-top:30px">
+    <article class="game-card">
+      <div class="game-art space">🚀</div>
+      <div class="game-info">
+        <span class="tag">SPACE SHOOTER</span>
+        <h3>Deep Space Defense</h3>
+        <p>Trận chiến ngoài không gian bắt đầu.</p>
+        <button class="play" onclick="alert('Game sẽ được tích hợp ở bước tiếp theo!')">CHƠI GAME →</button>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="page" id="leaderboard">
+  <div class="eyebrow">GLOBAL COMPETITION</div>
+  <h1>LEADERBOARD</h1>
+  <p style="color:var(--muted)">Bảng xếp hạng người chơi của Arcade Hub.</p>
+  <div class="notice">Đây là dữ liệu minh họa. Bảng xếp hạng thật sẽ hiển thị sau khi kết nối tài khoản và cơ sở dữ liệu.</div>
+  <div style="overflow-x:auto;margin-top:25px">
+    <table>
+      <thead><tr><th>HẠNG</th><th>NGƯỜI CHƠI</th><th>GAME</th><th>ĐIỂM</th></tr></thead>
+      <tbody>
+        <tr><td>🥇 01</td><td>Player One</td><td>Deep Space Defense</td><td>12,850</td></tr>
+        <tr><td>🥈 02</td><td>Player Two</td><td>Deep Space Defense</td><td>9,420</td></tr>
+        <tr><td>🥉 03</td><td>Player Three</td><td>Deep Space Defense</td><td>7,890</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="page" id="profile">
+  <div class="eyebrow">YOUR GAMING IDENTITY</div>
+  <h1>PLAYER PROFILE</h1>
+  <div class="profile-box">
+    <div class="avatar">👤</div>
+    <h2>GUEST PLAYER</h2>
+    <p style="color:var(--muted)">Bạn chưa đăng nhập vào Arcade Hub.</p>
+    <button class="primary" onclick="alert('Đăng nhập sẽ được kết nối ở bước tiếp theo!')">ĐĂNG NHẬP</button>
+  </div>
+</section>
+
+</main>
+
+<footer>© 2026 ARCADE HUB — YOUR GAMES. YOUR WORLD.</footer>
+
+<script>
+function showPage(page){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(el=>el.classList.remove('active'));
+  document.getElementById(page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('nav button').forEach(button=>{
+  button.addEventListener('click',()=>showPage(button.dataset.page));
+});
+</script>
+
+</body>
+</html>
