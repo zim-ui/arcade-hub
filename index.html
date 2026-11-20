@@ -293,5 +293,16 @@ document.querySelectorAll('nav button').forEach(button=>{
 });
 </script>
 
+
+<script>
+const SUPABASE_URL = "https://jgheidjlidthphzuoelv.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_v2jcukqo4U4-O44HPVGRQw_SK82sjii";
+
+const arcadeDB = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+</script>
+
 </body>
 </html>
