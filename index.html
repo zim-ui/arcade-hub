@@ -437,7 +437,127 @@ const arcadeDB = window.supabase.createClient(
   });
 
   
+
 async function updateUser(user) {
+  currentUser = user;
+
+  const loginButton = document.querySelector('header .login');
+  const profile = document.querySelector('#profile .profile-box');
+
+  if (user) {
+    let displayName = user.user_metadata?.display_name || user.email;
+    let username = 'player';
+    let avatarUrl = '';
+    let level = 1;
+    let totalXP = 0;
+
+    const { data: profileData, error: profileError } = await arcadeDB
+      .from('profiles')
+      .select('username, display_name, avatar_url, level, total_xp')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Profile error:', profileError);
+    }
+
+    if (profileData) {
+      displayName = profileData.display_name || profileData.username || displayName;
+      username = profileData.username || username;
+      avatarUrl = profileData.avatar_url || '';
+      level = profileData.level || 1;
+      totalXP = profileData.total_xp || 0;
+    }
+
+    const { data: statsData, error: statsError } = await arcadeDB
+      .from('player_stats')
+      .select('games_played, total_score, best_score')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (statsError) {
+      console.error('Stats error:', statsError);
+    }
+
+    const gamesPlayed = statsData?.games_played || 0;
+    const totalScore = statsData?.total_score || 0;
+    const bestScore = statsData?.best_score || 0;
+
+    loginButton.textContent = 'ĐĂNG XUẤT';
+    loginButton.onclick = async () => {
+      const { error } = await arcadeDB.auth.signOut();
+      if (error) alert(error.message);
+    };
+
+    const avatarHTML = avatarUrl
+      ? `<img src="${escapeText(avatarUrl)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : '👤';
+
+    const xpProgress = totalXP % 1000;
+
+    profile.innerHTML = `
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="avatar" style="width:85px;height:85px;overflow:hidden;flex-shrink:0">
+          ${avatarHTML}
+        </div>
+        <div>
+          <h2 style="margin:0 0 8px">${escapeText(displayName)}</h2>
+          <p class="profile-email">${escapeText(user.email || '')}</p>
+          <p style="color:var(--muted);font-size:12px">@${escapeText(username)}</p>
+        </div>
+      </div>
+
+      <div style="margin-top:30px;padding:20px;background:#0b1220;border:1px solid var(--line);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-family:Orbitron,sans-serif;color:var(--cyan)">LEVEL ${level}</strong>
+          <span style="font-size:12px;color:var(--muted)">${totalXP.toLocaleString()} EXP</span>
+        </div>
+        <div style="height:9px;background:#263244;border-radius:20px;margin-top:14px;overflow:hidden">
+          <div style="height:100%;width:${xpProgress / 10}%;background:linear-gradient(90deg,#7c5cff,#39d5d0);border-radius:20px"></div>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:0">
+          ${xpProgress} / 1000 EXP trong mốc hiển thị tiếp theo
+        </p>
+      </div>
+
+      <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px">
+        <div class="stat">
+          <strong>${totalScore.toLocaleString()}</strong>
+          <p>TỔNG ĐIỂM</p>
+        </div>
+        <div class="stat">
+          <strong>${gamesPlayed.toLocaleString()}</strong>
+          <p>LƯỢT GHI ĐIỂM</p>
+        </div>
+        <div class="stat">
+          <strong>${bestScore.toLocaleString()}</strong>
+          <p>ĐIỂM CAO NHẤT</p>
+        </div>
+      </div>
+
+      <button class="primary" id="profileLogout">ĐĂNG XUẤT</button>
+    `;
+
+    $('profileLogout').onclick = async () => {
+      const { error } = await arcadeDB.auth.signOut();
+      if (error) alert(error.message);
+    };
+
+  } else {
+    loginButton.textContent = 'ĐĂNG NHẬP';
+    loginButton.onclick = openAuth;
+
+    profile.innerHTML = `
+      <div class="avatar">👤</div>
+      <h2>GUEST PLAYER</h2>
+      <p style="color:var(--muted)">Bạn chưa đăng nhập vào Arcade Hub.</p>
+      <button class="primary" id="profileLogin">ĐĂNG NHẬP</button>
+    `;
+
+    $('profileLogin').onclick = openAuth;
+  }
+}
+ {
   currentUser = user;
 
   const loginButton = document.querySelector('header .login');
