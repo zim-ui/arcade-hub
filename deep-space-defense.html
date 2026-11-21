@@ -5,8 +5,8 @@
     <!-- Nút tạm dừng góc trên khi đang chơi -->
     <button id="ubg-pause-btn" title="Tạm dừng (P)" style="display:none;position:absolute;top:17px;right:92px;width:32px;height:30px;background:#0f2338;color:#67e8f9;border:1px solid #2563eb66;border-radius:5px;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;z-index:4">II</button>
 
-    <!-- Nút Boost nhanh cho chuột / cảm ứng -->
-    <button id="ubg-boost-btn" title="Boost (Shift / Chuột phải)" style="display:none;position:absolute;bottom:14px;right:14px;padding:8px 13px;background:#091d30d9;color:#38bdf8;border:1px solid #38bdf888;border-radius:7px;font-weight:900;font-size:10px;letter-spacing:1.5px;cursor:pointer;z-index:4">⚡ BOOST</button>
+    <!-- Nút Boost Laser nhanh cho chuột / cảm ứng -->
+    <button id="ubg-boost-btn" title="Laser Boost (Shift / Chuột phải)" style="display:none;position:absolute;bottom:14px;right:14px;padding:8px 13px;background:#091d30d9;color:#38bdf8;border:1px solid #38bdf888;border-radius:7px;font-weight:900;font-size:10px;letter-spacing:1.5px;cursor:pointer;z-index:4">⚡ LASER BOOST</button>
 
     <!-- Menu chính -->
     <div id="ubg-menu" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#020617f5,#071426f2 55%,#090d1bf5);z-index:5">
@@ -26,13 +26,13 @@
       <h2 style="font-size:30px;letter-spacing:4px;margin:12px 0 24px">CÀI ĐẶT</h2>
 
       <div style="width:285px;padding:15px 16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;letter-spacing:1px">ÂM THANH</span>
+        <span style="font-size:12px;letter-spacing:1px">ÂM THANH & NHẠC</span>
         <button id="ubg-sound" style="width:64px;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold">ON</button>
       </div>
 
       <div style="width:285px;padding:15px 16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:12px;letter-spacing:1px">ÂM LƯỢNG</span>
+          <span style="font-size:12px;letter-spacing:1px">ÂM LƯỢNG TỔNG</span>
           <span id="ubg-vol-label" style="font-size:12px;font-weight:800;color:#22d3ee">70%</span>
         </div>
         <input id="ubg-volume" type="range" min="0" max="100" value="70" style="width:100%;accent-color:#22d3ee;cursor:pointer">
@@ -44,7 +44,7 @@
       </div>
 
       <div style="margin-top:16px;color:#64748b;font-size:11px;line-height:1.9;text-align:center">
-        DI CHUỘT / CẢM ỨNG ĐỂ LÁI · GIỮ ĐỂ BẮN<br>SHIFT / CHUỘT PHẢI ĐỂ BOOST · P / ESC ĐỂ TẠM DỪNG
+        DI CHUỘT / CẢM ỨNG ĐỂ LÁI · GIỮ ĐỂ BẮN<br>SHIFT / CHUỘT PHẢI ĐỂ LASER BOOST · P / ESC ĐỂ TẠM DỪNG
       </div>
       <button id="ubg-back" style="margin-top:22px;width:170px;padding:12px;background:#172033;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:bold;letter-spacing:2px;cursor:pointer">← QUAY LẠI</button>
     </div>
@@ -72,7 +72,7 @@
 
     <div id="ubg-warning" style="display:none;position:absolute;left:0;right:0;top:43%;padding:16px 4px;background:#9f123955;border-top:1px solid #fb7185;border-bottom:1px solid #fb7185;color:#fecdd3;font-size:17px;font-weight:900;letter-spacing:2px;pointer-events:none;z-index:2">⚠ SOÁI HẠM ĐỊCH ĐANG TIẾN VÀO ⚠</div>
   </div>
-  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Giữ trái: bắn · Shift/Chuột phải: Boost · P: tạm dừng</div>
+  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Giữ trái: bắn · Shift/Chuột phải: Laser Boost · P: tạm dừng</div>
 </div>
 
 <script>
@@ -89,7 +89,7 @@ const menu = $('ubg-menu'), settings = $('ubg-settings'), pauseOverlay = $('ubg-
 const warningEl = $('ubg-warning'), pauseBtn = $('ubg-pause-btn'), boostBtn = $('ubg-boost-btn');
 const volSlider = $('ubg-volume'), volLabel = $('ubg-vol-label');
 
-let soundOn = true, shakeOn = true, volume = 0.7, audio = null;
+let soundOn = true, shakeOn = true, volume = 0.7, audio = null, masterGain = null, bgmTimer = null, bgmStep = 0;
 try {
   soundOn = localStorage.getItem('ubg_sound') !== '0';
   shakeOn = localStorage.getItem('ubg_shake') !== '0';
@@ -108,42 +108,146 @@ $('ubg-best-menu').textContent = best;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+function ensureAudio() {
+  if (audio) {
+    if (audio.state === 'suspended') audio.resume().catch(() => {});
+    if (masterGain) masterGain.gain.value = soundOn ? volume : 0;
+    return true;
+  }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audio = new AC();
+    masterGain = audio.createGain();
+    masterGain.gain.value = soundOn ? volume : 0;
+    masterGain.connect(audio.destination);
+    if (audio.state === 'suspended') audio.resume().catch(() => {});
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function syncVolumeUI() {
   const pct = Math.round(volume * 100);
   volSlider.value = String(pct);
   volLabel.textContent = pct + '%';
   volLabel.style.color = soundOn && pct > 0 ? '#22d3ee' : '#94a3b8';
+  if (masterGain) masterGain.gain.setTargetAtTime(soundOn ? volume : 0, audio?.currentTime || 0, 0.02);
 }
 
 function sound(type) {
-  if (!soundOn || volume <= 0) return;
+  if (!soundOn || volume <= 0 || !ensureAudio()) return;
   try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!audio) audio = new AC();
-    if (audio.state === 'suspended') audio.resume();
     const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
     o.connect(g);
-    g.connect(audio.destination);
+    g.connect(masterGain);
     const cfg = {
-      shot: [760, 170, .07, 'sawtooth', .025],
-      hit: [220, 90, .12, 'triangle', .045],
-      boom: [130, 28, .32, 'square', .08],
-      pickup: [480, 1050, .2, 'sine', .07],
-      warning: [170, 340, .4, 'sawtooth', .06],
-      boss: [100, 55, .5, 'sawtooth', .07],
-      combo: [500, 950, .13, 'sine', .06],
-      boost: [260, 880, .18, 'sawtooth', .055]
+      shot: [760, 170, .07, 'sawtooth', .045],
+      hit: [220, 90, .12, 'triangle', .07],
+      boom: [130, 28, .32, 'square', .11],
+      pickup: [480, 1050, .2, 'sine', .1],
+      warning: [170, 340, .4, 'sawtooth', .08],
+      boss: [100, 55, .5, 'sawtooth', .09],
+      combo: [500, 950, .13, 'sine', .08],
+      boost: [240, 1120, .24, 'sawtooth', .085],
+      laser: [980, 420, .08, 'sawtooth', .035]
     };
     const c = cfg[type] || cfg.hit;
-    const gainVal = c[4] * volume;
     o.type = c[3];
     o.frequency.setValueAtTime(c[0], t);
     o.frequency.exponentialRampToValueAtTime(Math.max(20, c[1]), t + c[2]);
-    g.gain.setValueAtTime(Math.max(0.0001, gainVal), t);
-    g.gain.exponentialRampToValueAtTime(.0001, t + c[2]);
+    g.gain.setValueAtTime(Math.max(0.0002, c[4]), t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + c[2]);
     o.start(t);
     o.stop(t + c[2]);
   } catch (e) {}
+}
+
+// Nhạc nền Synthwave / Phonk-Electro tổng hợp bằng Web Audio
+function playBgmStep() {
+  if (state !== 'PLAYING' || !soundOn || volume <= 0 || !ensureAudio()) return;
+  try {
+    const t = audio.currentTime;
+    const step = bgmStep % 16;
+    const isBoss = Boolean(boss);
+    const bassNotes = isBoss
+      ? [55, 55, 65.41, 55, 73.42, 73.42, 65.41, 49]
+      : [55, 55, 55, 65.41, 73.42, 73.42, 82.41, 65.41];
+    const arpNotes = isBoss
+      ? [220, 261.63, 329.63, 392, 440, 392, 329.63, 261.63]
+      : [220, 277.18, 329.63, 440, 329.63, 277.18, 329.63, 493.88];
+
+    // Kick nhịp 0, 4, 8, 12 (và thêm 10 khi có Boss)
+    if (step % 4 === 0 || (isBoss && step === 10)) {
+      const kickOsc = audio.createOscillator(), kickGain = audio.createGain();
+      kickOsc.type = 'sine';
+      kickOsc.frequency.setValueAtTime(isBoss ? 145 : 130, t);
+      kickOsc.frequency.exponentialRampToValueAtTime(34, t + 0.12);
+      kickGain.gain.setValueAtTime(0.24, t);
+      kickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+      kickOsc.connect(kickGain);
+      kickGain.connect(masterGain);
+      kickOsc.start(t);
+      kickOsc.stop(t + 0.14);
+    }
+
+    // Bassline dồn dập
+    const bassOsc = audio.createOscillator(), bassGain = audio.createGain(), bassFilter = audio.createBiquadFilter();
+    bassOsc.type = 'sawtooth';
+    const bFreq = bassNotes[step % bassNotes.length] * (step % 2 === 1 ? 1 : 0.5);
+    bassOsc.frequency.setValueAtTime(bFreq, t);
+    bassFilter.type = 'lowpass';
+    bassFilter.frequency.setValueAtTime(isBoss ? 620 : 460, t);
+    bassGain.gain.setValueAtTime(0.085, t);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    bassOsc.connect(bassFilter);
+    bassFilter.connect(bassGain);
+    bassGain.connect(masterGain);
+    bassOsc.start(t);
+    bassOsc.stop(t + 0.15);
+
+    // Lead / Arpeggio
+    const arpOsc = audio.createOscillator(), arpGain = audio.createGain();
+    arpOsc.type = isBoss ? 'square' : 'triangle';
+    arpOsc.frequency.setValueAtTime(arpNotes[step % arpNotes.length], t);
+    arpGain.gain.setValueAtTime(isBoss ? 0.035 : 0.045, t);
+    arpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    arpOsc.connect(arpGain);
+    arpGain.connect(masterGain);
+    arpOsc.start(t);
+    arpOsc.stop(t + 0.12);
+
+    // Hi-hat / Snare clap giả lập bằng noise buffer ngắn
+    if (step % 2 === 1 || step === 4 || step === 12) {
+      const len = Math.floor(audio.sampleRate * 0.045);
+      const buf = audio.createBuffer(1, len, audio.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.35));
+      const noise = audio.createBufferSource();
+      noise.buffer = buf;
+      const filter = audio.createBiquadFilter();
+      filter.type = (step === 4 || step === 12) ? 'bandpass' : 'highpass';
+      filter.frequency.setValueAtTime((step === 4 || step === 12) ? 1400 : 6500, t);
+      const nGain = audio.createGain();
+      nGain.gain.setValueAtTime((step === 4 || step === 12) ? 0.09 : 0.032, t);
+      nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      noise.connect(filter);
+      filter.connect(nGain);
+      nGain.connect(masterGain);
+      noise.start(t);
+    }
+
+    bgmStep++;
+  } catch (e) {}
+}
+
+function updateBgmLoop() {
+  if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+  if (state === 'PLAYING' && soundOn && volume > 0) {
+    const tempoMs = boss ? 115 : 132;
+    playBgmStep();
+    bgmTimer = setInterval(playBgmStep, tempoMs);
+  }
 }
 
 function setToggle(el, on) {
@@ -157,6 +261,7 @@ function updateToggles() {
   setToggle($('ubg-sound'), soundOn);
   setToggle($('ubg-shake'), shakeOn);
   syncVolumeUI();
+  updateBgmLoop();
 }
 updateToggles();
 
@@ -166,11 +271,13 @@ function setPause(paused) {
     pointerDown = false;
     canvas.style.cursor = 'default';
     pauseOverlay.style.display = 'flex';
+    updateBgmLoop();
   } else if (!paused && state === 'PAUSED') {
     state = 'PLAYING';
     pauseOverlay.style.display = 'none';
     canvas.style.cursor = 'none';
     last = performance.now();
+    updateBgmLoop();
   }
 }
 
@@ -187,6 +294,7 @@ $('ubg-pause-home').onclick = () => {
   state = 'MENU';
   pointerDown = false;
   canvas.style.cursor = 'default';
+  updateBgmLoop();
 };
 
 $('ubg-settings-open').onclick = () => { menu.style.display = 'none'; settings.style.display = 'flex'; state = 'SETTINGS'; };
@@ -220,9 +328,10 @@ $('ubg-home').onclick = () => {
   menu.style.display = 'flex';
   state = 'MENU';
   pointerDown = false;
+  updateBgmLoop();
 };
 
-let ship, enemies, bullets, shots, asteroids, particles, shocks, pickups, stars, trail;
+let ship, enemies, bullets, shots, asteroids, particles, shocks, pickups, stars, trail, laserTick;
 
 function addShock(x, y, color, maxR = 54) {
   shocks.push({ x, y, r: 8, maxR, color, alpha: .75 });
@@ -231,14 +340,15 @@ function addShock(x, y, color, maxR = 54) {
 function triggerBoost() {
   if (state !== 'PLAYING' || !ship) return;
   if (ship.boostTimer > 0 || ship.boostEnergy < 35) return;
-  ship.boostEnergy = Math.max(0, ship.boostEnergy - 45);
-  ship.boostTimer = 22;
-  ship.invuln = Math.max(ship.invuln, 28);
-  shake = Math.max(shake, 6);
+  ship.boostEnergy = Math.max(0, ship.boostEnergy - 40);
+  ship.boostTimer = 34;
+  ship.invuln = Math.max(ship.invuln, 38);
+  laserTick = 0;
+  shake = Math.max(shake, 7);
   sound('boost');
   const cx = ship.x + ship.w / 2, cy = ship.y + ship.h / 2;
-  addShock(cx, cy, '#38bdf8', 68);
-  burst(cx, cy + 16, '#38bdf8', 22, 4.2);
+  addShock(cx, cy, '#22d3ee', 76);
+  burst(cx, cy + 16, '#38bdf8', 24, 4.4);
 }
 
 boostBtn.onclick = e => { e.stopPropagation(); triggerBoost(); };
@@ -275,9 +385,9 @@ window.addEventListener('pointerup', () => { pointerDown = false; });
 window.addEventListener('blur', () => { pointerDown = false; });
 
 function resetWorld() {
-  score = 0; combo = 0; comboLeft = 0; shake = 0; gridScroll = 0;
+  score = 0; combo = 0; comboLeft = 0; shake = 0; gridScroll = 0; laserTick = 0;
   spawnClock = 45; asteroidClock = 65; orbClock = 360;
-  time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220;
+  time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220; bgmStep = 0;
   ship = {
     x: W / 2 - 23, y: H - 115, w: 46, h: 55,
     shield: 0, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
@@ -302,6 +412,7 @@ function startGame() {
   canvas.style.cursor = 'none';
   last = performance.now();
   pointerDown = false;
+  updateBgmLoop();
 }
 
 function gameOver() {
@@ -314,6 +425,7 @@ function gameOver() {
   shake = 18;
   sound('boom');
   addShock(ship.x + ship.w / 2, ship.y + ship.h / 2, '#fb376b', 95);
+  updateBgmLoop();
   if (score > best) {
     best = Math.floor(score);
     try { localStorage.setItem('ubg_best', String(best)); } catch (e) {}
@@ -401,6 +513,7 @@ function spawnBoss() {
   const hp = 175 + (bossLevel - 1) * 85;
   boss = { x: W / 2 - 105, y: -165, w: 210, h: 145, target: 75, vx: 1.7 + bossLevel * .16, hp, maxHp: hp, fire: 75, angle: 0, flash: 0, level: bossLevel };
   sound('boss');
+  updateBgmLoop();
 }
 
 function bossDeath() {
@@ -419,6 +532,7 @@ function bossDeath() {
   bossAt = score + 300;
   shake = 25;
   sound('boom');
+  updateBgmLoop();
 }
 
 function hitPlayer(x, y) {
@@ -438,7 +552,8 @@ function hitPlayer(x, y) {
 function update(dt) {
   if (state === 'PAUSED') return;
   time += dt;
-  const speedMult = (ship?.speed > 0 ? 1.8 : 1) * (ship?.boostTimer > 0 ? 2.1 : 1);
+  const boosting = ship?.boostTimer > 0;
+  const speedMult = (ship?.speed > 0 ? 1.8 : 1) * (boosting ? 2.2 : 1);
   gridScroll = (gridScroll + 0.8 * dt * speedMult) % 52;
 
   stars.forEach(s => {
@@ -469,13 +584,13 @@ function update(dt) {
   ship.beam = Math.max(0, ship.beam - dt);
   ship.drone = Math.max(0, ship.drone - dt);
   ship.boostTimer = Math.max(0, ship.boostTimer - dt);
-  ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.24 * dt);
+  ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.26 * dt);
   if (ship.cool > 0) ship.cool -= dt;
   if (comboLeft > 0) { comboLeft -= dt; if (comboLeft <= 0) combo = 0; }
 
   const tx = clamp(pointer.x - ship.w / 2, 0, W - ship.w);
   const ty = clamp(pointer.y - ship.h / 2, 75, H - ship.h);
-  const smooth = ship.boostTimer > 0 ? (1 - Math.pow(.56, dt)) : (1 - Math.pow(.78, dt));
+  const smooth = boosting ? (1 - Math.pow(.52, dt)) : (1 - Math.pow(.78, dt));
   ship.x += (tx - ship.x) * smooth;
   ship.y += (ty - ship.y) * smooth;
 
@@ -529,8 +644,14 @@ function update(dt) {
     }
     if (dead) continue;
     if (Math.hypot(e.x + e.w / 2 - (ship.x + ship.w / 2), e.y + e.h / 2 - (ship.y + ship.h / 2)) < Math.min(e.w, e.h) * .55 + 12) {
-      enemies.splice(i, 1);
-      hitPlayer(e.x + e.w / 2, e.y + e.h / 2);
+      if (boosting) {
+        e.hp -= 4 * dt;
+        burst(e.x + e.w / 2, e.y + e.h / 2, '#38bdf8', 8, 2.5);
+        if (e.hp <= 0) killEnemy(i);
+      } else {
+        enemies.splice(i, 1);
+        hitPlayer(e.x + e.w / 2, e.y + e.h / 2);
+      }
       continue;
     }
     if (e.y > H + 30) enemies.splice(i, 1);
@@ -575,7 +696,7 @@ function update(dt) {
         if (b.hp <= 0) { bossDeath(); break; }
       }
     }
-    if (boss && Math.hypot(b.x + b.w / 2 - (ship.x + ship.w / 2), b.y + b.h / 2 - (ship.y + ship.h / 2)) < 85) {
+    if (boss && !boosting && Math.hypot(b.x + b.w / 2 - (ship.x + ship.w / 2), b.y + b.h / 2 - (ship.y + ship.h / 2)) < 85) {
       hitPlayer(ship.x + ship.w / 2, ship.y + ship.h / 2);
     }
   }
@@ -585,7 +706,8 @@ function update(dt) {
     b.x += b.vx * dt; b.y += b.vy * dt;
     if (Math.hypot(b.x - (ship.x + ship.w / 2), b.y - (ship.y + ship.h / 2)) < b.r + 13) {
       bullets.splice(i, 1);
-      hitPlayer(b.x, b.y);
+      if (!boosting) hitPlayer(b.x, b.y);
+      else burst(b.x, b.y, '#38bdf8', 5, 1.5);
       continue;
     }
     if (b.y > H + 25 || b.y < -25 || b.x < -25 || b.x > W + 25) bullets.splice(i, 1);
@@ -613,7 +735,13 @@ function update(dt) {
     if (destroyed) continue;
     if (Math.hypot(a.x - (ship.x + ship.w / 2), a.y - (ship.y + ship.h / 2)) < a.r + 13) {
       asteroids.splice(i, 1);
-      hitPlayer(a.x, a.y);
+      if (boosting) {
+        burst(a.x, a.y, '#38bdf8', 18, 3.2);
+        addShock(a.x, a.y, '#38bdf8', a.r * 2.3);
+        score += 3;
+      } else {
+        hitPlayer(a.x, a.y);
+      }
       continue;
     }
     if (a.y > H + a.r) { asteroids.splice(i, 1); score++; }
@@ -639,14 +767,48 @@ function update(dt) {
     if (p.y > H + 20) pickups.splice(i, 1);
   }
 
+  // Cơ chế Boost Laser: bắn 2 tia laser đôi song song từ cánh tàu khi đang Boost
+  if (boosting) {
+    laserTick += dt;
+    if (laserTick >= 7) { laserTick = 0; sound('laser'); }
+    const cx = ship.x + ship.w / 2;
+    const beamOffsets = [-19, 19];
+    const halfW = 7 + Math.sin(time * 0.35) * 2;
+
+    beamOffsets.forEach(off => {
+      const lx = cx + off;
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (Math.abs(e.x + e.w / 2 - lx) < halfW + e.w * 0.42 && e.y < ship.y) {
+          e.hp -= 0.72 * dt;
+          if (Math.random() < 0.35 * dt) burst(lx, e.y + e.h / 2, '#22d3ee', 2, 1.8);
+          if (e.hp <= 0) killEnemy(i);
+        }
+      }
+      if (boss && Math.abs(boss.x + boss.w / 2 - lx) < halfW + boss.w * 0.42 && boss.y < ship.y) {
+        boss.hp -= 0.85 * dt;
+        boss.flash = 2;
+        if (Math.random() < 0.45 * dt) burst(lx, boss.y + boss.h, '#38bdf8', 2, 2);
+        if (boss.hp <= 0) bossDeath();
+      }
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        const a = asteroids[i];
+        if (Math.abs(a.x - lx) < halfW + a.r * 0.85 && a.y < ship.y) {
+          a.hp -= 0.75 * dt;
+          if (a.hp <= 0) {
+            burst(a.x, a.y, '#38bdf8', 16, 3);
+            addShock(a.x, a.y, '#38bdf8', a.r * 2);
+            score += 2;
+            asteroids.splice(i, 1);
+          }
+        }
+      }
+      bullets = bullets.filter(b => !(Math.abs(b.x - lx) < halfW + b.r && b.y < ship.y));
+    });
+  }
+
   if (ship.beam > 0) {
     const cx = ship.x + ship.w / 2, bw = 24 + Math.sin(time * .12) * 5;
-    ctx.save();
-    const g = ctx.createLinearGradient(cx - bw, 0, cx + bw, 0);
-    g.addColorStop(0, '#c084fc00'); g.addColorStop(.35, '#c084fcaa'); g.addColorStop(.5, '#fff'); g.addColorStop(.65, '#c084fcaa'); g.addColorStop(1, '#c084fc00');
-    ctx.fillStyle = g;
-    ctx.fillRect(cx - bw, 0, bw * 2, ship.y);
-    ctx.restore();
     for (let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
       if (Math.abs(e.x + e.w / 2 - cx) < bw + e.w * .35) { e.hp -= .45 * dt; if (e.hp <= 0) killEnemy(i); }
@@ -683,7 +845,6 @@ function drawShip() {
   ctx.moveTo(2, 19); ctx.lineTo(6, 19 + flame); ctx.lineTo(10, 19);
   ctx.fill(); ctx.shadowBlur = 0;
 
-  // Cánh phụ phát sáng
   ctx.strokeStyle = boosting ? '#7dd3fc' : '#38bdf866';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -722,6 +883,38 @@ function drawShip() {
       ctx.fillRect(dx - 5, dy - 5, 10, 10); ctx.shadowBlur = 0;
     }
   }
+}
+
+function drawBoostLasers() {
+  if (!ship || ship.boostTimer <= 0) return;
+  const cx = ship.x + ship.w / 2;
+  const lw = 6 + Math.sin(time * 0.45) * 2;
+  [-19, 19].forEach(off => {
+    const lx = cx + off;
+    ctx.save();
+    const grad = ctx.createLinearGradient(lx - lw * 2, 0, lx + lw * 2, 0);
+    grad.addColorStop(0, '#0ea5e900');
+    grad.addColorStop(0.3, '#22d3eecc');
+    grad.addColorStop(0.5, '#ffffff');
+    grad.addColorStop(0.7, '#22d3eecc');
+    grad.addColorStop(1, '#0ea5e900');
+    ctx.fillStyle = grad;
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = '#22d3ee';
+    ctx.fillRect(lx - lw * 2, 0, lw * 4, ship.y + 6);
+    ctx.restore();
+  });
+}
+
+function drawMegaBeam() {
+  if (!ship || ship.beam <= 0) return;
+  const cx = ship.x + ship.w / 2, bw = 24 + Math.sin(time * .12) * 5;
+  ctx.save();
+  const g = ctx.createLinearGradient(cx - bw, 0, cx + bw, 0);
+  g.addColorStop(0, '#c084fc00'); g.addColorStop(.35, '#c084fcaa'); g.addColorStop(.5, '#fff'); g.addColorStop(.65, '#c084fcaa'); g.addColorStop(1, '#c084fc00');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - bw, 0, bw * 2, ship.y);
+  ctx.restore();
 }
 
 function drawEnemy(e) {
@@ -781,7 +974,6 @@ function draw() {
   if (shakeOn && shake > .3) ctx.translate(rand(-shake, shake), rand(-shake, shake));
   ctx.fillStyle = '#030712'; ctx.fillRect(-30, -30, W + 60, H + 60);
 
-  // Lưới không gian mờ tạo chiều sâu
   ctx.strokeStyle = '#0f294226';
   ctx.lineWidth = 1;
   for (let gx = 0; gx <= W; gx += 52) {
@@ -851,6 +1043,8 @@ function draw() {
       ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * 1.2, s.y + 13); ctx.stroke(); ctx.shadowBlur = 0;
     });
 
+    drawBoostLasers();
+    drawMegaBeam();
     if (ship) drawShip();
     drawBoss();
     if (state === 'PLAYING' || state === 'PAUSED') drawHud();
@@ -870,17 +1064,16 @@ function drawHud() {
   ctx.textAlign = 'right'; ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px Segoe UI'; ctx.fillText('KỶ LỤC', 495, 25);
   ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.fillText(best, 495, 45);
 
-  // Thanh Boost ở góc dưới trái
-  const ready = ship.boostEnergy >= 45 || ship.boostTimer > 0;
-  ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 128, 16);
-  ctx.strokeStyle = ready ? '#38bdf888' : '#334155'; ctx.strokeRect(14, H - 30, 128, 16);
-  ctx.fillStyle = ship.boostTimer > 0 ? '#7dd3fc' : (ready ? '#0284c7' : '#334155');
-  ctx.fillRect(16, H - 28, 124 * (ship.boostEnergy / 100), 12);
+  const ready = ship.boostEnergy >= 35 || ship.boostTimer > 0;
+  ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 136, 16);
+  ctx.strokeStyle = ready ? '#22d3ee88' : '#334155'; ctx.strokeRect(14, H - 30, 136, 16);
+  ctx.fillStyle = ship.boostTimer > 0 ? '#22d3ee' : (ready ? '#0891b2' : '#334155');
+  ctx.fillRect(16, H - 28, 132 * (ship.boostEnergy / 100), 12);
   ctx.fillStyle = '#e0f2fe'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('BOOST ' + Math.floor(ship.boostEnergy) + '%', 78, H - 19);
+  ctx.fillText('LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 82, H - 19);
 
   const active = [];
-  if (ship.boostTimer > 0) active.push('BOOSTING');
+  if (ship.boostTimer > 0) active.push('LASER BOOST');
   if (ship.shield) active.push('SHIELD');
   if (ship.rapid > 0) active.push('RAPID');
   if (ship.speed > 0) active.push('OVERDRIVE');
@@ -905,3 +1098,9 @@ last = performance.now();
 requestAnimationFrame(frame);
 })();
 </script>
+
+<ElicitationsGroup message="Bạn muốn nâng cấp thêm gì cho game?">
+  <Elicitation label="Tách nhạc nền riêng để bật tắt độc lập" query="Tách riêng nút bật tắt nhạc nền và thanh chỉnh nhạc nền với hiệu ứng âm thanh (SFX) cho game bắn máy bay này."/>
+  <Elicitation label="Thêm đạn dội tường hoặc tên lửa tự dẫn" query="Thêm loại nâng cấp tên lửa tự dẫn hoặc đạn nảy tường cho tàu trong game bắn máy bay này."/>
+  <Elicitation label="Thêm thanh máu (HP) nhiều mạng cho tàu" query="Nâng cấp tàu người chơi có thanh máu nhiều điểm HP thay vì chết ngay khi trúng đạn (khi không có khiên)."/>
+</ElicitationsGroup>
