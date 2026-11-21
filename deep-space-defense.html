@@ -98,7 +98,7 @@
 
     <div id="ubg-warning" style="display:none;position:absolute;left:0;right:0;top:43%;padding:16px 4px;background:#9f123955;border-top:1px solid #fb7185;border-bottom:1px solid #fb7185;color:#fecdd3;font-size:17px;font-weight:900;letter-spacing:2px;pointer-events:none;z-index:2">⚠ BOSS ĐANG TIẾN VÀO ⚠</div>
   </div>
-  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Tự động bắn · Lướt sát đạn: Graze · Shift/Chuột phải: Laser Boost · P: tạm dừng</div>
+  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Tự động bắn · Lướt sát đạn: Graze · Shift/Chuột phải: Laser Boost (cần 50%) · P: tạm dừng</div>
 </div>
 
 <script>
@@ -116,6 +116,8 @@ const upgradeOverlay = $('ubg-upgrade'), upgradeCardsEl = $('ubg-upgrade-cards')
 const warningEl = $('ubg-warning'), pauseBtn = $('ubg-pause-btn'), boostBtn = $('ubg-boost-btn');
 const volSlider = $('ubg-volume'), volLabel = $('ubg-vol-label');
 
+const BOOST_MIN_COST = 50;
+
 let soundOn = true, shakeOn = true, volume = 0.7, audio = null, masterGain = null, bgmTimer = null, bgmStep = 0;
 let selectedShip = 'viper';
 try {
@@ -130,17 +132,17 @@ try {
 const SHIP_SPECS = {
   viper: {
     name: 'VIPER', primary: '#22d3ee', hull: '#26384f', trim: '#9fb4ca',
-    smoothRate: 0.78, hitboxR: 9.5, grazeR: 25, grazeScore: 3, boostGainMult: 1.25,
+    smoothRate: 0.78, hitboxR: 9.5, grazeR: 25, grazeScore: 3, boostGainMult: 1.2,
     baseDamage: 1, baseCool: 12, startShield: 0, pattern: 'twin'
   },
   titan: {
     name: 'TITAN', primary: '#fb923c', hull: '#3a241b', trim: '#fdba74',
-    smoothRate: 0.83, hitboxR: 11, grazeR: 24, grazeScore: 3, boostGainMult: 1.0,
+    smoothRate: 0.83, hitboxR: 11, grazeR: 24, grazeScore: 3, boostGainMult: 0.95,
     baseDamage: 1.35, baseCool: 14, startShield: 1, pattern: 'spread3'
   },
   phantom: {
     name: 'PHANTOM', primary: '#c084fc', hull: '#261a3b', trim: '#d8b4fe',
-    smoothRate: 0.72, hitboxR: 7.5, grazeR: 36, grazeScore: 6, boostGainMult: 1.45,
+    smoothRate: 0.72, hitboxR: 7.5, grazeR: 36, grazeScore: 6, boostGainMult: 1.35,
     baseDamage: 0.95, baseCool: 10.5, startShield: 0, pattern: 'twin'
   }
 };
@@ -169,7 +171,7 @@ let state = 'MENU', pointer = { x: W / 2, y: H - 100 }, last = 0, time = 0;
 let score = 0, best = 0, grazeCount = 0, maxCombo = 1, bossesKilled = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
 let spawnClock = 50, asteroidClock = 75, orbClock = 420, grazeSoundCool = 0, eventClock = 680;
 let warning = 0, boss = null, bossLevel = 1, bossAt = 220, bossEnragedBanner = 0;
-let slowMoTimer = 0, cosmicEvent = null; // { type: 'METEOR' | 'ION', timer, label, color }
+let slowMoTimer = 0, cosmicEvent = null;
 
 try { best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
 $('ubg-best-menu').textContent = best;
@@ -398,7 +400,6 @@ $('ubg-home').onclick = () => {
   updateBgmLoop();
 };
 
-// Danh sách thẻ nâng cấp Roguelite sau mỗi Boss
 const UPGRADE_POOL = [
   {
     id: 'multishot',
@@ -430,10 +431,10 @@ const UPGRADE_POOL = [
   },
   {
     id: 'boostcap',
-    title: 'LÒ PHẢN ỨNG BOOST (+35%)',
-    desc: 'Tăng tốc độ hồi và nạp năng lượng Laser Boost',
+    title: 'LÒ PHẢN ỨNG BOOST (+30%)',
+    desc: 'Tăng tốc độ nạp năng lượng Laser Boost & +25% thanh hiện tại',
     color: '#c084fc',
-    apply: s => { s.mods.boostChargeMult += 0.35; s.boostEnergy = 100; }
+    apply: s => { s.mods.boostChargeMult += 0.3; s.boostEnergy = Math.min(100, s.boostEnergy + 25); }
   },
   {
     id: 'aegis',
@@ -502,10 +503,10 @@ function hitEffect(x, y, baseColor, isHeavy = false) {
 
 function triggerBoost() {
   if (state !== 'PLAYING' || !ship) return;
-  if (ship.boostTimer > 0 || ship.boostEnergy < 35) return;
-  ship.boostEnergy = Math.max(0, ship.boostEnergy - 40);
-  ship.boostTimer = 34;
-  ship.invuln = Math.max(ship.invuln, 38);
+  if (ship.boostTimer > 0 || ship.boostEnergy < BOOST_MIN_COST) return;
+  ship.boostEnergy = Math.max(0, ship.boostEnergy - BOOST_MIN_COST);
+  ship.boostTimer = 30;
+  ship.invuln = Math.max(ship.invuln, 34);
   laserTick = 0;
   shake = Math.max(shake, 7);
   sound('boost');
@@ -547,7 +548,7 @@ function resetWorld() {
   const spec = SHIP_SPECS[selectedShip] || SHIP_SPECS.viper;
   score = 0; best = 0; grazeCount = 0; maxCombo = 1; bossesKilled = 0;
   shake = 0; combo = 0; comboLeft = 0; gridScroll = 0;
-  spawnClock = 45; asteroidClock = 65; orbClock = 360; grazeSoundCool = 0; laserTick = 0; eventClock = 680;
+  spawnClock = 50; asteroidClock = 75; orbClock = 420; grazeSoundCool = 0; laserTick = 0; eventClock = 680;
   time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220; bossEnragedBanner = 0; bgmStep = 0;
   slowMoTimer = 0; cosmicEvent = null;
   try { best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
@@ -556,7 +557,7 @@ function resetWorld() {
     spec,
     x: W / 2 - 23, y: H - 115, w: 46, h: 55,
     shield: spec.startShield, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
-    invuln: 150, cool: 0, boostEnergy: 100, boostTimer: 0,
+    invuln: 150, cool: 0, boostEnergy: 45, boostTimer: 0,
     mods: { extraGuns: 0, fireRateMult: 1, damageMult: 1, magnetRange: 0, boostChargeMult: 1 }
   };
   enemies = []; bullets = []; shots = []; asteroids = [];
@@ -646,7 +647,8 @@ function killEnemy(index) {
   score += gained;
   addFloatText(cx, cy - 8, '+' + gained + (combo > 1 ? ' x' + combo : ''), combo > 1 ? '#facc15' : '#e2e8f0', heavy ? 1.2 : 1);
   if (ship) {
-    ship.boostEnergy = Math.min(100, ship.boostEnergy + (heavy ? 22 : 12) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
+    // Giảm năng lượng Boost nhận khi hạ địch để tránh tích quá nhanh
+    ship.boostEnergy = Math.min(100, ship.boostEnergy + (heavy ? 11 : 6) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
   }
   if (combo > 1) sound('combo');
   if (Math.random() < e.drop) addPickup(cx, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
@@ -656,20 +658,25 @@ function spawnEnemy() {
   const roll = Math.random();
   const type = roll < .48 ? 'SCOUT' : roll < .82 ? 'STRIKER' : 'HEAVY';
   const data = type === 'SCOUT'
-    ? [38, 38, 2, 1.9, 5, .25, '#34d399']
+    ? [40, 38, 2, 1.9, 5, .25, '#34d399']
     : type === 'STRIKER'
       ? [48, 48, 3, 1.35, 9, .38, '#e879f9']
-      : [64, 56, 6, .9, 16, .55, '#fb923c'];
+      : [66, 56, 6, .9, 16, .55, '#fb923c'];
   const [w, h, hp, vy, points, drop, color] = data;
   enemies.push({ type, x: rand(35, W - w - 35), y: -h - 5, w, h, hp, maxHp: hp, vy: vy + Math.min(score / 1700, .8), phase: rand(0, 6), fire: rand(65, 120), points, drop, color, hitFlash: 0 });
 }
 
 function spawnAsteroid() {
   const r = rand(12, 27);
-  const craters = Array.from({ length: 3 }, () => ({
-    dx: rand(-r * .35, r * .35),
-    dy: rand(-r * .35, r * .35),
-    cr: rand(r * .12, r * .22)
+  const craters = Array.from({ length: 4 }, () => ({
+    dx: rand(-r * .38, r * .38),
+    dy: rand(-r * .38, r * .38),
+    cr: rand(r * .11, r * .22)
+  }));
+  const cracks = Array.from({ length: 2 }, () => ({
+    a1: rand(0, Math.PI * 2),
+    a2: rand(0, Math.PI * 2),
+    len: rand(r * .45, r * .72)
   }));
   const meteorStorm = cosmicEvent?.type === 'METEOR';
   asteroids.push({
@@ -681,7 +688,8 @@ function spawnAsteroid() {
     rot: rand(0, 6),
     spin: rand(-.04, .04),
     hp: r > 21 ? 3 : 2,
-    craters
+    craters,
+    cracks
   });
 }
 
@@ -691,8 +699,8 @@ function triggerCosmicEvent() {
     cosmicEvent = { type: 'METEOR', timer: 420, label: '☄ BÃO THIÊN THẠCH — THƯỞNG ĐIỂM x2', color: '#fb923c' };
     sound('warning');
   } else {
-    cosmicEvent = { type: 'ION', timer: 300, label: '⚡ BÃO NĂNG LƯỢNG ION — ĐẦY BOOST', color: '#38bdf8' };
-    ship.boostEnergy = 100;
+    cosmicEvent = { type: 'ION', timer: 300, label: '⚡ BÃO NĂNG LƯỢNG ION — +25% BOOST', color: '#38bdf8' };
+    ship.boostEnergy = Math.min(100, ship.boostEnergy + 25);
     addPickup(W * 0.35, -10, 'rapid');
     addPickup(W * 0.65, -10, 'shield');
     sound('pickup');
@@ -725,7 +733,6 @@ function fire() {
     });
   });
 
-  // Thêm nòng phụ từ thẻ Roguelite
   for (let g = 1; g <= ship.mods.extraGuns; g++) {
     const off = 18 + g * 7;
     [-off, off].forEach(dx => {
@@ -813,7 +820,6 @@ function bossDeath() {
   bossAt = score + 320;
   shake = 25;
   sound('boom');
-  // Mở màn hình chọn mô-đun nâng cấp Roguelite
   openUpgradeDraft();
 }
 
@@ -822,11 +828,10 @@ function hitPlayer(x, y) {
   if (ship.shield > 0) {
     ship.shield = 0;
     ship.invuln = 85;
-    slowMoTimer = 72; // Bullet-Time Clutch 1.2s khi vỡ khiên
+    slowMoTimer = 72;
     burst(x, y, '#22d3ee', 32, 4.4);
     addShock(x, y, '#22d3ee', 92);
     addFloatText(x, y - 14, 'SHIELD CLUTCH! SLOW-MO', '#67e8f9', 1.05);
-    // Đẩy lùi & xóa bớt đạn địch quá sát tàu
     bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) > 105);
     sound('clutch');
     return;
@@ -890,13 +895,13 @@ function update(rawDt) {
   ship.beam = Math.max(0, ship.beam - dt);
   ship.drone = Math.max(0, ship.drone - dt);
   ship.boostTimer = Math.max(0, ship.boostTimer - dt);
-  ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.26 * dt * ship.spec.boostGainMult * ship.mods.boostChargeMult);
+  // Hồi năng lượng Boost chậm và đều hơn để giữ độ cân bằng
+  ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.13 * dt * ship.spec.boostGainMult * ship.mods.boostChargeMult);
   if (ship.cool > 0) ship.cool -= dt;
   if (comboLeft > 0) { comboLeft -= dt; if (comboLeft <= 0) combo = 0; }
 
   const tx = clamp(pointer.x - ship.w / 2, 0, W - ship.w);
   const ty = clamp(pointer.y - ship.h / 2, 75, H - ship.h);
-  // Người chơi vẫn giữ độ nhạy điều khiển cao kể cả trong Bullet-Time
   const playerDt = rawDt;
   const smooth = boosting ? (1 - Math.pow(.52, playerDt)) : (1 - Math.pow(ship.spec.smoothRate, playerDt));
   ship.x += (tx - ship.x) * smooth;
@@ -904,7 +909,6 @@ function update(rawDt) {
 
   fire();
 
-  // Cập nhật Biến cố Vũ Trụ
   if (cosmicEvent) {
     cosmicEvent.timer -= dt;
     if (cosmicEvent.timer <= 0) cosmicEvent = null;
@@ -1101,7 +1105,7 @@ function update(rawDt) {
       b.grazed = true;
       grazeCount++;
       score += ship.spec.grazeScore;
-      ship.boostEnergy = Math.min(100, ship.boostEnergy + 3.2 * ship.spec.boostGainMult * ship.mods.boostChargeMult);
+      ship.boostEnergy = Math.min(100, ship.boostEnergy + 1.6 * ship.spec.boostGainMult * ship.mods.boostChargeMult);
       if (grazeSoundCool <= 0) { sound('graze'); grazeSoundCool = 5; }
       sparks.push({
         x: (b.x + scx) / 2,
@@ -1157,7 +1161,6 @@ function update(rawDt) {
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     p.y += p.vy * dt; p.phase += .07 * dt;
-    // Nam châm hút vật phẩm nếu có mô-đun Magnet
     if (ship.mods.magnetRange > 0) {
       const d = Math.hypot(scx - p.x, scy - p.y);
       if (d < ship.mods.magnetRange && d > 1) {
@@ -1171,7 +1174,7 @@ function update(rawDt) {
       if (p.type === 'speed') ship.speed = 600;
       if (p.type === 'beam') ship.beam = 330;
       if (p.type === 'drone') ship.drone = 600;
-      ship.boostEnergy = Math.min(100, ship.boostEnergy + 20 * ship.mods.boostChargeMult);
+      ship.boostEnergy = Math.min(100, ship.boostEnergy + 10 * ship.mods.boostChargeMult);
       burst(p.x, p.y, p.type === 'shield' ? '#22d3ee' : '#facc15', 22, 3);
       addShock(p.x, p.y, '#22d3ee', 36);
       addFloatText(p.x, p.y - 6, '+5 ' + p.type.toUpperCase(), '#67e8f9', 0.95);
@@ -1264,12 +1267,10 @@ function drawShip() {
 
   ctx.fillStyle = ship.spec.hull; ctx.strokeStyle = ship.spec.trim; ctx.lineWidth = 1.5;
   if (ship.type === 'titan') {
-    // Khung giáp nặng rộng cánh
     ctx.beginPath();
     ctx.moveTo(0, -27); ctx.lineTo(-27, 18); ctx.lineTo(-14, 24); ctx.lineTo(0, 18); ctx.lineTo(14, 24); ctx.lineTo(27, 18);
     ctx.closePath(); ctx.fill(); ctx.stroke();
   } else if (ship.type === 'phantom') {
-    // Thân mũi nhọn siêu thanh
     ctx.beginPath();
     ctx.moveTo(0, -32); ctx.lineTo(-20, 24); ctx.lineTo(-6, 15); ctx.lineTo(0, 21); ctx.lineTo(6, 15); ctx.lineTo(20, 24);
     ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1288,7 +1289,6 @@ function drawShip() {
   ctx.beginPath(); ctx.ellipse(0, -5, 4, 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // Điểm lõi hitbox chính xác
   ctx.save();
   ctx.fillStyle = '#ffffff';
   ctx.shadowBlur = 8;
@@ -1350,22 +1350,96 @@ function drawMegaBeam() {
   ctx.restore();
 }
 
+// Ngoại hình mới cho 3 loại kẻ địch thường
 function drawEnemy(e) {
   const flashed = (e.hitFlash || 0) > 0;
   const fillCol = flashed ? '#ffffff' : e.color;
   ctx.save();
   ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
-  ctx.fillStyle = fillCol; ctx.shadowBlur = flashed ? 20 : 12; ctx.shadowColor = flashed ? '#ffffff' : e.color;
+
   if (e.type === 'SCOUT') {
-    ctx.beginPath(); ctx.moveTo(0, -e.h / 2); ctx.lineTo(e.w / 2, e.h / 2 - 5); ctx.lineTo(0, e.h / 2 - 12); ctx.lineTo(-e.w / 2, e.h / 2 - 5); ctx.closePath(); ctx.fill();
+    // Chiến cơ trinh sát mũi nhọn + cánh gập góc
+    ctx.shadowBlur = flashed ? 18 : 11;
+    ctx.shadowColor = flashed ? '#ffffff' : e.color;
+    ctx.fillStyle = flashed ? '#ffffff' : '#0b2922';
+    ctx.strokeStyle = fillCol;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, e.h / 2);
+    ctx.lineTo(e.w * 0.48, -e.h * 0.25);
+    ctx.lineTo(e.w * 0.2, -e.h * 0.5);
+    ctx.lineTo(0, -e.h * 0.22);
+    ctx.lineTo(-e.w * 0.2, -e.h * 0.5);
+    ctx.lineTo(-e.w * 0.48, -e.h * 0.25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = flashed ? '#0f172a' : '#a7f3d0';
+    ctx.beginPath();
+    ctx.moveTo(0, 5);
+    ctx.lineTo(5, -6);
+    ctx.lineTo(0, -10);
+    ctx.lineTo(-5, -6);
+    ctx.closePath();
+    ctx.fill();
   } else if (e.type === 'STRIKER') {
-    ctx.beginPath(); ctx.moveTo(0, -e.h / 2); ctx.lineTo(e.w / 2, e.h / 2); ctx.lineTo(0, e.h / 2 - 9); ctx.lineTo(-e.w / 2, e.h / 2); ctx.closePath(); ctx.fill();
+    // Tàu đánh chặn hình thoi hai ngạnh mũi nhọn + lõi năng lượng
+    ctx.shadowBlur = flashed ? 20 : 13;
+    ctx.shadowColor = flashed ? '#ffffff' : e.color;
+    ctx.fillStyle = flashed ? '#ffffff' : '#291036';
+    ctx.strokeStyle = fillCol;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(0, e.h * 0.52);
+    ctx.lineTo(e.w * 0.22, e.h * 0.12);
+    ctx.lineTo(e.w * 0.5, -e.h * 0.28);
+    ctx.lineTo(e.w * 0.22, -e.h * 0.5);
+    ctx.lineTo(0, -e.h * 0.18);
+    ctx.lineTo(-e.w * 0.22, -e.h * 0.5);
+    ctx.lineTo(-e.w * 0.5, -e.h * 0.28);
+    ctx.lineTo(-e.w * 0.22, e.h * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = flashed ? '#0f172a' : '#f5d0fe';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+    ctx.fill();
   } else {
-    ctx.fillRect(-e.w / 2, -e.h / 2, e.w, e.h);
-    ctx.clearRect(-e.w / 2 + 8, -e.h / 2 + 8, e.w - 16, e.h - 16);
-    ctx.strokeStyle = fillCol; ctx.lineWidth = 4; ctx.strokeRect(-e.w / 2, -e.h / 2, e.w, e.h);
+    // Pháo đài hạng nặng HEAVY: khung giáp đôi + 2 nòng pháo + lõi lò phản ứng
+    ctx.shadowBlur = flashed ? 22 : 14;
+    ctx.shadowColor = flashed ? '#ffffff' : e.color;
+    ctx.fillStyle = flashed ? '#ffffff' : '#2d160b';
+    ctx.strokeStyle = fillCol;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(-e.w * 0.34, -e.h * 0.48);
+    ctx.lineTo(e.w * 0.34, -e.h * 0.48);
+    ctx.lineTo(e.w * 0.5, -e.h * 0.12);
+    ctx.lineTo(e.w * 0.36, e.h * 0.46);
+    ctx.lineTo(-e.w * 0.36, e.h * 0.46);
+    ctx.lineTo(-e.w * 0.5, -e.h * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Hai nòng pháo hai bên
+    ctx.fillStyle = flashed ? '#e2e8f0' : '#9a3412';
+    ctx.fillRect(-e.w * 0.46, 2, 7, e.h * 0.44);
+    ctx.fillRect(e.w * 0.46 - 7, 2, 7, e.h * 0.44);
+
+    // Lõi lò phản ứng trung tâm
+    ctx.strokeStyle = flashed ? '#0f172a' : '#fdba74';
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(-11, -11, 22, 22);
+    ctx.fillStyle = flashed ? '#0f172a' : '#ffedd5';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.shadowBlur = 0; ctx.fillStyle = flashed ? '#0f172a' : '#fff'; ctx.fillRect(-3, -3, 6, 8);
+
   ctx.restore();
 
   ctx.fillStyle = '#1e293b'; ctx.fillRect(e.x, e.y - 7, e.w, 3);
@@ -1629,18 +1703,49 @@ function draw() {
   });
 
   if (state === 'PLAYING' || state === 'PAUSED' || state === 'UPGRADE' || state === 'GAMEOVER') {
+    // Ngoại hình mới chi tiết hơn cho thiên thạch
     asteroids.forEach(a => {
-      ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
-      ctx.fillStyle = '#475569'; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.rot);
+      const isStorm = cosmicEvent?.type === 'METEOR';
+      ctx.fillStyle = isStorm ? '#431e14' : '#334155';
+      ctx.strokeStyle = isStorm ? '#fb923c' : '#cbd5e1';
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      for (let k = 0; k < 9; k++) {
-        const an = k / 9 * Math.PI * 2, r = a.r * (.78 + (k % 3) * .1);
-        const x = Math.cos(an) * r, y = Math.sin(an) * r;
-        k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      for (let k = 0; k < 10; k++) {
+        const an = k / 10 * Math.PI * 2;
+        const rad = a.r * (.76 + (k % 3) * .12);
+        const px = Math.cos(an) * rad, py = Math.sin(an) * rad;
+        k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
       }
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#334155';
-      a.craters?.forEach(c => { ctx.beginPath(); ctx.arc(c.dx, c.dy, c.cr, 0, Math.PI * 2); ctx.fill(); });
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Lớp đá sáng nổi bật phía trên
+      ctx.fillStyle = isStorm ? '#7c2d12' : '#475569';
+      ctx.beginPath();
+      ctx.arc(-a.r * 0.15, -a.r * 0.15, a.r * 0.58, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Đường rạn nứt nhỏ
+      ctx.strokeStyle = isStorm ? '#fdba7488' : '#1e293b';
+      ctx.lineWidth = 1.4;
+      a.cracks?.forEach(rk => {
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(rk.a1) * a.r * 0.2, Math.sin(rk.a1) * a.r * 0.2);
+        ctx.lineTo(Math.cos(rk.a2) * rk.len, Math.sin(rk.a2) * rk.len);
+        ctx.stroke();
+      });
+
+      // Các hố va chạm
+      ctx.fillStyle = isStorm ? '#291009' : '#1e293b';
+      a.craters?.forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c.dx, c.dy, c.cr, 0, Math.PI * 2);
+        ctx.fill();
+      });
       ctx.restore();
     });
 
@@ -1701,7 +1806,7 @@ function drawHud() {
     ctx.restore();
   }
 
-  const ready = ship.boostEnergy >= 35 || ship.boostTimer > 0;
+  const ready = ship.boostEnergy >= BOOST_MIN_COST || ship.boostTimer > 0;
   ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 142, 16);
   ctx.strokeStyle = ready ? '#22d3ee99' : '#334155'; ctx.strokeRect(14, H - 30, 142, 16);
   ctx.fillStyle = ship.boostTimer > 0 ? '#22d3ee' : (ready ? '#0891b2' : '#334155');
@@ -1735,3 +1840,9 @@ last = performance.now();
 requestAnimationFrame(frame);
 })();
 </script>
+
+<ElicitationsGroup message="Bạn muốn tinh chỉnh hoặc mở rộng thêm gì tiếp theo?">
+  <Elicitation label="Thêm hiệu ứng nứt vỡ cho thiên thạch" query="Thêm hiệu ứng các vết nứt phát sáng dần trên thiên thạch khi sắp vỡ và bắn ra mảnh đá nhỏ khi nổ."/>
+  <Elicitation label="Tăng độ khó và nhịp tấn công của quái thường" query="Tăng thêm kiểu bắn và nhịp di chuyển đa dạng hơn cho kẻ địch thường SCOUT, STRIKER và HEAVY."/>
+  <Elicitation label="Thêm nút bật/tắt Auto-Fire trên HUD" query="Thêm nút bật hoặc tắt chế độ tự động bắn (Auto-Fire) trực tiếp trên màn hình khi đang chơi."/>
+</ElicitationsGroup>
