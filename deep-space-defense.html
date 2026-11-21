@@ -5,6 +5,9 @@
     <!-- Nút tạm dừng góc trên khi đang chơi -->
     <button id="ubg-pause-btn" title="Tạm dừng (P)" style="display:none;position:absolute;top:17px;right:92px;width:32px;height:30px;background:#0f2338;color:#67e8f9;border:1px solid #2563eb66;border-radius:5px;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;z-index:4">II</button>
 
+    <!-- Nút Boost nhanh cho chuột / cảm ứng -->
+    <button id="ubg-boost-btn" title="Boost (Shift / Chuột phải)" style="display:none;position:absolute;bottom:14px;right:14px;padding:8px 13px;background:#091d30d9;color:#38bdf8;border:1px solid #38bdf888;border-radius:7px;font-weight:900;font-size:10px;letter-spacing:1.5px;cursor:pointer;z-index:4">⚡ BOOST</button>
+
     <!-- Menu chính -->
     <div id="ubg-menu" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#020617f5,#071426f2 55%,#090d1bf5);z-index:5">
       <div style="font-size:10px;letter-spacing:6px;color:#64748b">PHÒNG THỦ VŨ TRỤ SÂU</div>
@@ -41,7 +44,7 @@
       </div>
 
       <div style="margin-top:16px;color:#64748b;font-size:11px;line-height:1.9;text-align:center">
-        DI CHUỘT / CẢM ỨNG ĐỂ LÁI TÀU · GIỮ ĐỂ BẮN<br>PHÍM P / ESC ĐỂ TẠM DỪNG
+        DI CHUỘT / CẢM ỨNG ĐỂ LÁI · GIỮ ĐỂ BẮN<br>SHIFT / CHUỘT PHẢI ĐỂ BOOST · P / ESC ĐỂ TẠM DỪNG
       </div>
       <button id="ubg-back" style="margin-top:22px;width:170px;padding:12px;background:#172033;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:bold;letter-spacing:2px;cursor:pointer">← QUAY LẠI</button>
     </div>
@@ -69,7 +72,7 @@
 
     <div id="ubg-warning" style="display:none;position:absolute;left:0;right:0;top:43%;padding:16px 4px;background:#9f123955;border-top:1px solid #fb7185;border-bottom:1px solid #fb7185;color:#fecdd3;font-size:17px;font-weight:900;letter-spacing:2px;pointer-events:none;z-index:2">⚠ SOÁI HẠM ĐỊCH ĐANG TIẾN VÀO ⚠</div>
   </div>
-  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: điều khiển · Giữ chuột trái: bắn · P/Esc: tạm dừng · Ăn lõi năng lượng để nhận nâng cấp</div>
+  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Giữ trái: bắn · Shift/Chuột phải: Boost · P: tạm dừng</div>
 </div>
 
 <script>
@@ -83,7 +86,7 @@ const W = canvas.width, H = canvas.height;
 const $ = id => document.getElementById(id);
 
 const menu = $('ubg-menu'), settings = $('ubg-settings'), pauseOverlay = $('ubg-pause'), over = $('ubg-over');
-const warningEl = $('ubg-warning'), pauseBtn = $('ubg-pause-btn');
+const warningEl = $('ubg-warning'), pauseBtn = $('ubg-pause-btn'), boostBtn = $('ubg-boost-btn');
 const volSlider = $('ubg-volume'), volLabel = $('ubg-vol-label');
 
 let soundOn = true, shakeOn = true, volume = 0.7, audio = null;
@@ -95,7 +98,7 @@ try {
 } catch (e) {}
 
 let state = 'MENU', pointerDown = false, pointer = { x: W / 2, y: H - 100 }, last = 0, time = 0;
-let score = 0, best = 0, shake = 0, combo = 0, comboLeft = 0;
+let score = 0, best = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
 let spawnClock = 50, asteroidClock = 75, orbClock = 420;
 let warning = 0, boss = null, bossLevel = 1, bossAt = 220;
 
@@ -128,7 +131,8 @@ function sound(type) {
       pickup: [480, 1050, .2, 'sine', .07],
       warning: [170, 340, .4, 'sawtooth', .06],
       boss: [100, 55, .5, 'sawtooth', .07],
-      combo: [500, 950, .13, 'sine', .06]
+      combo: [500, 950, .13, 'sine', .06],
+      boost: [260, 880, .18, 'sawtooth', .055]
     };
     const c = cfg[type] || cfg.hit;
     const gainVal = c[4] * volume;
@@ -178,6 +182,7 @@ $('ubg-resume').onclick = () => setPause(false);
 $('ubg-pause-home').onclick = () => {
   pauseOverlay.style.display = 'none';
   pauseBtn.style.display = 'none';
+  boostBtn.style.display = 'none';
   menu.style.display = 'flex';
   state = 'MENU';
   pointerDown = false;
@@ -211,15 +216,44 @@ $('ubg-retry').onclick = () => startGame();
 $('ubg-home').onclick = () => {
   over.style.display = 'none';
   pauseBtn.style.display = 'none';
+  boostBtn.style.display = 'none';
   menu.style.display = 'flex';
   state = 'MENU';
   pointerDown = false;
 };
 
+let ship, enemies, bullets, shots, asteroids, particles, shocks, pickups, stars, trail;
+
+function addShock(x, y, color, maxR = 54) {
+  shocks.push({ x, y, r: 8, maxR, color, alpha: .75 });
+}
+
+function triggerBoost() {
+  if (state !== 'PLAYING' || !ship) return;
+  if (ship.boostTimer > 0 || ship.boostEnergy < 35) return;
+  ship.boostEnergy = Math.max(0, ship.boostEnergy - 45);
+  ship.boostTimer = 22;
+  ship.invuln = Math.max(ship.invuln, 28);
+  shake = Math.max(shake, 6);
+  sound('boost');
+  const cx = ship.x + ship.w / 2, cy = ship.y + ship.h / 2;
+  addShock(cx, cy, '#38bdf8', 68);
+  burst(cx, cy + 16, '#38bdf8', 22, 4.2);
+}
+
+boostBtn.onclick = e => { e.stopPropagation(); triggerBoost(); };
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (state === 'PLAYING') triggerBoost();
+});
+
 window.addEventListener('keydown', e => {
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
     if (state === 'PLAYING') { e.preventDefault(); setPause(true); }
     else if (state === 'PAUSED') { e.preventDefault(); setPause(false); }
+  } else if (e.key === 'Shift') {
+    if (state === 'PLAYING') { e.preventDefault(); triggerBoost(); }
   }
 });
 
@@ -232,6 +266,7 @@ function inputPos(e) {
 canvas.addEventListener('pointermove', inputPos);
 canvas.addEventListener('pointerdown', e => {
   if (state !== 'PLAYING') return;
+  if (e.button === 2) { triggerBoost(); return; }
   inputPos(e);
   pointerDown = true;
   canvas.setPointerCapture?.(e.pointerId);
@@ -239,16 +274,18 @@ canvas.addEventListener('pointerdown', e => {
 window.addEventListener('pointerup', () => { pointerDown = false; });
 window.addEventListener('blur', () => { pointerDown = false; });
 
-let ship, enemies, bullets, shots, asteroids, particles, pickups, stars, trail;
-
 function resetWorld() {
-  score = 0; combo = 0; comboLeft = 0; shake = 0;
+  score = 0; combo = 0; comboLeft = 0; shake = 0; gridScroll = 0;
   spawnClock = 45; asteroidClock = 65; orbClock = 360;
   time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220;
-  ship = { x: W / 2 - 23, y: H - 115, w: 46, h: 55, shield: 0, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0, invuln: 150, cool: 0 };
-  enemies = []; bullets = []; shots = []; asteroids = []; particles = []; pickups = []; trail = [];
-  stars = Array.from({ length: 115 }, () => ({
-    x: rand(0, W), y: rand(0, H), r: rand(.5, 1.8), v: rand(.35, 1.8), a: rand(.2, .9), tw: rand(.003, .015)
+  ship = {
+    x: W / 2 - 23, y: H - 115, w: 46, h: 55,
+    shield: 0, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
+    invuln: 150, cool: 0, boostEnergy: 100, boostTimer: 0
+  };
+  enemies = []; bullets = []; shots = []; asteroids = []; particles = []; shocks = []; pickups = []; trail = [];
+  stars = Array.from({ length: 130 }, () => ({
+    x: rand(0, W), y: rand(0, H), r: rand(.5, 2), v: rand(.35, 2), a: rand(.2, .95), tw: rand(.003, .016)
   }));
 }
 
@@ -261,6 +298,7 @@ function startGame() {
   over.style.display = 'none';
   warningEl.style.display = 'none';
   pauseBtn.style.display = 'block';
+  boostBtn.style.display = 'block';
   canvas.style.cursor = 'none';
   last = performance.now();
   pointerDown = false;
@@ -271,9 +309,11 @@ function gameOver() {
   state = 'GAMEOVER';
   pointerDown = false;
   pauseBtn.style.display = 'none';
+  boostBtn.style.display = 'none';
   canvas.style.cursor = 'default';
   shake = 18;
   sound('boom');
+  addShock(ship.x + ship.w / 2, ship.y + ship.h / 2, '#fb376b', 95);
   if (score > best) {
     best = Math.floor(score);
     try { localStorage.setItem('ubg_best', String(best)); } catch (e) {}
@@ -287,7 +327,7 @@ function gameOver() {
 function burst(x, y, color, n = 16, power = 3) {
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2), v = rand(.5, power);
-    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(22, 48), max: 48, r: rand(1.3, 4), color });
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(22, 48), max: 48, r: rand(1.3, 4.2), color });
   }
 }
 
@@ -298,14 +338,17 @@ function addPickup(x, y, type) {
 function killEnemy(index) {
   const e = enemies[index];
   if (!e) return;
-  burst(e.x + e.w / 2, e.y + e.h / 2, e.color, e.type === 'HEAVY' ? 30 : 19, 3.8);
+  const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+  burst(cx, cy, e.color, e.type === 'HEAVY' ? 30 : 19, 3.8);
+  addShock(cx, cy, e.color, e.type === 'HEAVY' ? 62 : 38);
   sound('boom');
   enemies.splice(index, 1);
   combo++;
   comboLeft = 210;
   score += e.points * Math.min(combo, 8);
+  if (ship) ship.boostEnergy = Math.min(100, ship.boostEnergy + (e.type === 'HEAVY' ? 22 : 12));
   if (combo > 1) sound('combo');
-  if (Math.random() < e.drop) addPickup(e.x + e.w / 2, e.y + e.h / 2, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
+  if (Math.random() < e.drop) addPickup(cx, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
 }
 
 function spawnEnemy() {
@@ -322,7 +365,12 @@ function spawnEnemy() {
 
 function spawnAsteroid() {
   const r = rand(12, 27);
-  asteroids.push({ x: rand(r, W - r), y: -r, r, vy: rand(1.5, 3.1), vx: rand(-.5, .5), rot: rand(0, 6), spin: rand(-.04, .04), hp: r > 21 ? 3 : 2 });
+  const craters = Array.from({ length: 3 }, () => ({
+    dx: rand(-r * .35, r * .35),
+    dy: rand(-r * .35, r * .35),
+    cr: rand(r * .12, r * .22)
+  }));
+  asteroids.push({ x: rand(r, W - r), y: -r, r, vy: rand(1.5, 3.1), vx: rand(-.5, .5), rot: rand(0, 6), spin: rand(-.04, .04), hp: r > 21 ? 3 : 2, craters });
 }
 
 function fire() {
@@ -357,12 +405,14 @@ function spawnBoss() {
 
 function bossDeath() {
   if (!boss) return;
-  const b = boss;
-  burst(b.x + b.w / 2, b.y + b.h / 2, '#facc15', 90, 6);
-  burst(b.x + b.w / 2, b.y + b.h / 2, '#22d3ee', 65, 5);
-  addPickup(b.x + b.w / 2 - 28, b.y + b.h / 2, 'rapid');
-  addPickup(b.x + b.w / 2, b.y + b.h / 2, 'shield');
-  addPickup(b.x + b.w / 2 + 28, b.y + b.h / 2, 'beam');
+  const b = boss, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  burst(cx, cy, '#facc15', 90, 6);
+  burst(cx, cy, '#22d3ee', 65, 5);
+  addShock(cx, cy, '#facc15', 130);
+  addShock(cx, cy, '#22d3ee', 95);
+  addPickup(cx - 28, cy, 'rapid');
+  addPickup(cx, cy, 'shield');
+  addPickup(cx + 28, cy, 'beam');
   score += 120;
   boss = null;
   bossLevel++;
@@ -377,6 +427,7 @@ function hitPlayer(x, y) {
     ship.shield = 0;
     ship.invuln = 70;
     burst(x, y, '#22d3ee', 28, 4);
+    addShock(x, y, '#22d3ee', 52);
     shake = 8;
     sound('hit');
     return;
@@ -387,18 +438,29 @@ function hitPlayer(x, y) {
 function update(dt) {
   if (state === 'PAUSED') return;
   time += dt;
+  const speedMult = (ship?.speed > 0 ? 1.8 : 1) * (ship?.boostTimer > 0 ? 2.1 : 1);
+  gridScroll = (gridScroll + 0.8 * dt * speedMult) % 52;
+
   stars.forEach(s => {
-    s.y += s.v * dt * (ship?.speed > 0 ? 1.8 : 1);
+    s.y += s.v * dt * speedMult;
     s.a += s.tw * dt;
     if (s.a > .95 || s.a < .15) s.tw *= -1;
     if (s.y > H) { s.y = 0; s.x = rand(0, W); }
   });
+
   particles.forEach(p => {
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.vx *= Math.pow(.985, dt); p.vy *= Math.pow(.985, dt);
     p.life -= dt;
   });
   particles = particles.filter(p => p.life > 0);
+
+  shocks.forEach(w => {
+    w.r += (w.maxR - w.r) * (1 - Math.pow(.84, dt));
+    w.alpha -= 0.03 * dt;
+  });
+  shocks = shocks.filter(w => w.alpha > 0.02);
+
   if (state !== 'PLAYING') return;
 
   ship.invuln = Math.max(0, ship.invuln - dt);
@@ -406,12 +468,14 @@ function update(dt) {
   ship.speed = Math.max(0, ship.speed - dt);
   ship.beam = Math.max(0, ship.beam - dt);
   ship.drone = Math.max(0, ship.drone - dt);
+  ship.boostTimer = Math.max(0, ship.boostTimer - dt);
+  ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.24 * dt);
   if (ship.cool > 0) ship.cool -= dt;
   if (comboLeft > 0) { comboLeft -= dt; if (comboLeft <= 0) combo = 0; }
 
   const tx = clamp(pointer.x - ship.w / 2, 0, W - ship.w);
   const ty = clamp(pointer.y - ship.h / 2, 75, H - ship.h);
-  const smooth = 1 - Math.pow(.78, dt);
+  const smooth = ship.boostTimer > 0 ? (1 - Math.pow(.56, dt)) : (1 - Math.pow(.78, dt));
   ship.x += (tx - ship.x) * smooth;
   ship.y += (ty - ship.y) * smooth;
 
@@ -536,7 +600,13 @@ function update(dt) {
       if (Math.hypot(a.x - s.x, a.y - s.y) < a.r + 4) {
         a.hp -= s.damage;
         shots.splice(j, 1);
-        if (a.hp <= 0) { burst(a.x, a.y, '#94a3b8', 18, 3); score += 2; asteroids.splice(i, 1); destroyed = true; }
+        if (a.hp <= 0) {
+          burst(a.x, a.y, '#94a3b8', 18, 3);
+          addShock(a.x, a.y, '#94a3b8', a.r * 2.2);
+          score += 2;
+          asteroids.splice(i, 1);
+          destroyed = true;
+        }
         break;
       }
     }
@@ -558,7 +628,9 @@ function update(dt) {
       if (p.type === 'speed') ship.speed = 600;
       if (p.type === 'beam') ship.beam = 330;
       if (p.type === 'drone') ship.drone = 600;
+      ship.boostEnergy = Math.min(100, ship.boostEnergy + 20);
       burst(p.x, p.y, p.type === 'shield' ? '#22d3ee' : '#facc15', 22, 3);
+      addShock(p.x, p.y, '#22d3ee', 36);
       sound('pickup');
       score += 5;
       pickups.splice(i, 1);
@@ -588,25 +660,36 @@ function update(dt) {
 
 function drawShip() {
   const x = ship.x, y = ship.y, w = ship.w, h = ship.h, cx = x + w / 2, cy = y + h / 2;
-  trail.push({ x: cx, y: y + h - 5 });
-  if (trail.length > 12) trail.shift();
+  const boosting = ship.boostTimer > 0;
+  trail.push({ x: cx, y: y + h - 5, boost: boosting });
+  if (trail.length > 16) trail.shift();
+
   trail.forEach((p, i) => {
-    ctx.globalAlpha = (i / trail.length) * .22;
-    ctx.fillStyle = ship.speed > 0 ? '#facc15' : '#22d3ee';
-    ctx.beginPath(); ctx.arc(p.x, p.y, 2 + i * .25, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = (i / trail.length) * (p.boost ? .45 : .22);
+    ctx.fillStyle = p.boost ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : '#22d3ee');
+    ctx.beginPath(); ctx.arc(p.x, p.y, (p.boost ? 3.5 : 2) + i * .26, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(clamp((pointer.x - cx) * .006, -.3, .3));
-  const flame = rand(13, 22);
-  ctx.fillStyle = ship.speed > 0 ? '#facc15' : '#22d3ee';
-  ctx.shadowBlur = 14; ctx.shadowColor = ctx.fillStyle;
+
+  const flame = rand(boosting ? 22 : 13, boosting ? 34 : 22);
+  ctx.fillStyle = boosting ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : '#22d3ee');
+  ctx.shadowBlur = boosting ? 20 : 14; ctx.shadowColor = ctx.fillStyle;
   ctx.beginPath();
   ctx.moveTo(-10, 19); ctx.lineTo(-6, 19 + flame); ctx.lineTo(-2, 19);
   ctx.moveTo(2, 19); ctx.lineTo(6, 19 + flame); ctx.lineTo(10, 19);
   ctx.fill(); ctx.shadowBlur = 0;
+
+  // Cánh phụ phát sáng
+  ctx.strokeStyle = boosting ? '#7dd3fc' : '#38bdf866';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-15, 11); ctx.lineTo(-26, 19);
+  ctx.moveTo(15, 11); ctx.lineTo(26, 19);
+  ctx.stroke();
 
   ctx.fillStyle = '#26384f'; ctx.strokeStyle = '#9fb4ca'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(0, -29); ctx.lineTo(-23, 23); ctx.lineTo(-8, 17); ctx.lineTo(0, 22); ctx.lineTo(8, 17); ctx.lineTo(23, 23); ctx.closePath();
@@ -616,12 +699,14 @@ function drawShip() {
   ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(-7, 8); ctx.lineTo(0, 17); ctx.lineTo(7, 8); ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = '#0891b2'; ctx.shadowBlur = 10; ctx.shadowColor = '#22d3ee';
+  ctx.fillStyle = boosting ? '#e0f2fe' : '#0891b2';
+  ctx.shadowBlur = 12; ctx.shadowColor = '#22d3ee';
   ctx.beginPath(); ctx.ellipse(0, -5, 4, 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
   if (ship.invuln > 0 && Math.floor(time / 5) % 2 === 0) {
-    ctx.strokeStyle = '#67e8f9'; ctx.globalAlpha = .65; ctx.lineWidth = 2;
+    ctx.strokeStyle = boosting ? '#38bdf8' : '#67e8f9';
+    ctx.globalAlpha = .7; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(cx, cy, 34, 39, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -696,6 +781,16 @@ function draw() {
   if (shakeOn && shake > .3) ctx.translate(rand(-shake, shake), rand(-shake, shake));
   ctx.fillStyle = '#030712'; ctx.fillRect(-30, -30, W + 60, H + 60);
 
+  // Lưới không gian mờ tạo chiều sâu
+  ctx.strokeStyle = '#0f294226';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx <= W; gx += 52) {
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+  for (let gy = gridScroll; gy <= H; gy += 52) {
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
   let g = ctx.createRadialGradient(110, 190, 5, 110, 190, 240);
   g.addColorStop(0, '#312e8150'); g.addColorStop(1, '#03071200');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -706,6 +801,15 @@ function draw() {
 
   stars.forEach(s => { ctx.globalAlpha = s.a; ctx.fillStyle = '#dbeafe'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); });
   ctx.globalAlpha = 1;
+
+  shocks.forEach(w => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, w.alpha);
+    ctx.strokeStyle = w.color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  });
 
   particles.forEach(p => { ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); });
   ctx.globalAlpha = 1;
@@ -720,7 +824,10 @@ function draw() {
         const x = Math.cos(an) * r, y = Math.sin(an) * r;
         k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       }
-      ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#334155';
+      a.craters?.forEach(c => { ctx.beginPath(); ctx.arc(c.dx, c.dy, c.cr, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
     });
 
     pickups.forEach(p => {
@@ -763,7 +870,17 @@ function drawHud() {
   ctx.textAlign = 'right'; ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px Segoe UI'; ctx.fillText('KỶ LỤC', 495, 25);
   ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.fillText(best, 495, 45);
 
+  // Thanh Boost ở góc dưới trái
+  const ready = ship.boostEnergy >= 45 || ship.boostTimer > 0;
+  ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 128, 16);
+  ctx.strokeStyle = ready ? '#38bdf888' : '#334155'; ctx.strokeRect(14, H - 30, 128, 16);
+  ctx.fillStyle = ship.boostTimer > 0 ? '#7dd3fc' : (ready ? '#0284c7' : '#334155');
+  ctx.fillRect(16, H - 28, 124 * (ship.boostEnergy / 100), 12);
+  ctx.fillStyle = '#e0f2fe'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+  ctx.fillText('BOOST ' + Math.floor(ship.boostEnergy) + '%', 78, H - 19);
+
   const active = [];
+  if (ship.boostTimer > 0) active.push('BOOSTING');
   if (ship.shield) active.push('SHIELD');
   if (ship.rapid > 0) active.push('RAPID');
   if (ship.speed > 0) active.push('OVERDRIVE');
