@@ -2,6 +2,10 @@
   <div style="position:relative;display:inline-block;width:min(520px,96vw);aspect-ratio:520/660;overflow:hidden;border:1px solid #26364d;border-radius:14px;background:#030712;box-shadow:0 18px 60px #000b,0 0 28px #0e749055">
     <canvas id="ubg-canvas" width="520" height="660" style="display:block;width:100%;height:100%;background:#030712;cursor:crosshair"></canvas>
 
+    <!-- Nút tạm dừng góc trên khi đang chơi -->
+    <button id="ubg-pause-btn" title="Tạm dừng (P)" style="display:none;position:absolute;top:17px;right:92px;width:32px;height:30px;background:#0f2338;color:#67e8f9;border:1px solid #2563eb66;border-radius:5px;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;z-index:4">II</button>
+
+    <!-- Menu chính -->
     <div id="ubg-menu" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#020617f5,#071426f2 55%,#090d1bf5);z-index:5">
       <div style="font-size:10px;letter-spacing:6px;color:#64748b">PHÒNG THỦ VŨ TRỤ SÂU</div>
       <div style="font-size:43px;line-height:1.02;font-weight:1000;letter-spacing:2px;margin:18px 0 8px;text-shadow:0 0 25px #06b6d455">ULTIMATE<br><span style="color:#22d3ee">BOSS</span></div>
@@ -13,19 +17,44 @@
       <div style="position:absolute;bottom:24px;color:#475569;font-size:9px;letter-spacing:2px">HỆ THỐNG SẴN SÀNG // CHẾ ĐỘ CHIẾN ĐẤU</div>
     </div>
 
+    <!-- Cài đặt -->
     <div id="ubg-settings" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:#020617f7;z-index:6">
       <div style="font-size:10px;letter-spacing:5px;color:#22d3ee">CẤU HÌNH HỆ THỐNG</div>
-      <h2 style="font-size:30px;letter-spacing:4px;margin:12px 0 28px">CÀI ĐẶT</h2>
-      <div style="width:285px;padding:16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;letter-spacing:1px">ÂM THANH</span><button id="ubg-sound" style="width:64px;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold">ON</button>
+      <h2 style="font-size:30px;letter-spacing:4px;margin:12px 0 24px">CÀI ĐẶT</h2>
+
+      <div style="width:285px;padding:15px 16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;letter-spacing:1px">ÂM THANH</span>
+        <button id="ubg-sound" style="width:64px;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold">ON</button>
       </div>
-      <div style="width:285px;padding:16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;letter-spacing:1px">RUNG MÀN HÌNH</span><button id="ubg-shake" style="width:64px;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold">ON</button>
+
+      <div style="width:285px;padding:15px 16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:12px;letter-spacing:1px">ÂM LƯỢNG</span>
+          <span id="ubg-vol-label" style="font-size:12px;font-weight:800;color:#22d3ee">70%</span>
+        </div>
+        <input id="ubg-volume" type="range" min="0" max="100" value="70" style="width:100%;accent-color:#22d3ee;cursor:pointer">
       </div>
-      <div style="margin-top:20px;color:#64748b;font-size:11px;line-height:2;text-align:center">DI CHUỘT / CẢM ỨNG ĐỂ LÁI TÀU<br>GIỮ CHUỘT TRÁI / CHẠM ĐỂ BẮN</div>
-      <button id="ubg-back" style="margin-top:28px;width:170px;padding:12px;background:#172033;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:bold;letter-spacing:2px;cursor:pointer">← QUAY LẠI</button>
+
+      <div style="width:285px;padding:15px 16px;margin:7px;background:#101b2e;border:1px solid #26364d;border-radius:7px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;letter-spacing:1px">RUNG MÀN HÌNH</span>
+        <button id="ubg-shake" style="width:64px;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold">ON</button>
+      </div>
+
+      <div style="margin-top:16px;color:#64748b;font-size:11px;line-height:1.9;text-align:center">
+        DI CHUỘT / CẢM ỨNG ĐỂ LÁI TÀU · GIỮ ĐỂ BẮN<br>PHÍM P / ESC ĐỂ TẠM DỪNG
+      </div>
+      <button id="ubg-back" style="margin-top:22px;width:170px;padding:12px;background:#172033;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:bold;letter-spacing:2px;cursor:pointer">← QUAY LẠI</button>
     </div>
 
+    <!-- Màn hình tạm dừng -->
+    <div id="ubg-pause" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:#020617d9;backdrop-filter:blur(3px);z-index:6">
+      <div style="font-size:10px;letter-spacing:5px;color:#22d3ee">CHIẾN ĐẤU TẠM NGƯNG</div>
+      <h2 style="font-size:34px;letter-spacing:4px;margin:10px 0 26px;color:#e0f2fe">TẠM DỪNG</h2>
+      <button id="ubg-resume" style="width:210px;padding:14px;margin:6px;background:linear-gradient(100deg,#0891b2,#22d3ee);color:#03131a;border:0;border-radius:5px;font-weight:900;letter-spacing:2px;cursor:pointer">▶ TIẾP TỤC</button>
+      <button id="ubg-pause-home" style="width:210px;padding:12px;margin:6px;background:#172033;border:1px solid #475569;border-radius:5px;color:#cbd5e1;font-weight:700;letter-spacing:2px;cursor:pointer">MÀN HÌNH CHÍNH</button>
+    </div>
+
+    <!-- Màn hình Game Over -->
     <div id="ubg-over" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:#080711ed;z-index:7">
       <div style="font-size:11px;letter-spacing:5px;color:#fb7185">NHIỆM VỤ THẤT BẠI</div>
       <h2 style="font-size:35px;margin:10px 0;color:#fb376b;text-shadow:0 0 20px #fb376b66">TÀU BỊ PHÁ HỦY</h2>
@@ -40,7 +69,7 @@
 
     <div id="ubg-warning" style="display:none;position:absolute;left:0;right:0;top:43%;padding:16px 4px;background:#9f123955;border-top:1px solid #fb7185;border-bottom:1px solid #fb7185;color:#fecdd3;font-size:17px;font-weight:900;letter-spacing:2px;pointer-events:none;z-index:2">⚠ SOÁI HẠM ĐỊCH ĐANG TIẾN VÀO ⚠</div>
   </div>
-  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: điều khiển · Giữ chuột trái: bắn · Ăn lõi năng lượng để nhận nâng cấp</div>
+  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: điều khiển · Giữ chuột trái: bắn · P/Esc: tạm dừng · Ăn lõi năng lượng để nhận nâng cấp</div>
 </div>
 
 <script>
@@ -52,12 +81,17 @@ canvas.dataset.ready = '1';
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const $ = id => document.getElementById(id);
-const menu = $('ubg-menu'), settings = $('ubg-settings'), over = $('ubg-over'), warningEl = $('ubg-warning');
 
-let soundOn = true, shakeOn = true, audio = null;
+const menu = $('ubg-menu'), settings = $('ubg-settings'), pauseOverlay = $('ubg-pause'), over = $('ubg-over');
+const warningEl = $('ubg-warning'), pauseBtn = $('ubg-pause-btn');
+const volSlider = $('ubg-volume'), volLabel = $('ubg-vol-label');
+
+let soundOn = true, shakeOn = true, volume = 0.7, audio = null;
 try {
   soundOn = localStorage.getItem('ubg_sound') !== '0';
   shakeOn = localStorage.getItem('ubg_shake') !== '0';
+  const savedVol = Number(localStorage.getItem('ubg_volume'));
+  if (!Number.isNaN(savedVol)) volume = Math.max(0, Math.min(1, savedVol));
 } catch (e) {}
 
 let state = 'MENU', pointerDown = false, pointer = { x: W / 2, y: H - 100 }, last = 0, time = 0;
@@ -71,8 +105,15 @@ $('ubg-best-menu').textContent = best;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+function syncVolumeUI() {
+  const pct = Math.round(volume * 100);
+  volSlider.value = String(pct);
+  volLabel.textContent = pct + '%';
+  volLabel.style.color = soundOn && pct > 0 ? '#22d3ee' : '#94a3b8';
+}
+
 function sound(type) {
-  if (!soundOn) return;
+  if (!soundOn || volume <= 0) return;
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!audio) audio = new AC();
@@ -90,11 +131,12 @@ function sound(type) {
       combo: [500, 950, .13, 'sine', .06]
     };
     const c = cfg[type] || cfg.hit;
+    const gainVal = c[4] * volume;
     o.type = c[3];
     o.frequency.setValueAtTime(c[0], t);
     o.frequency.exponentialRampToValueAtTime(Math.max(20, c[1]), t + c[2]);
-    g.gain.setValueAtTime(c[4], t);
-    g.gain.exponentialRampToValueAtTime(.001, t + c[2]);
+    g.gain.setValueAtTime(Math.max(0.0001, gainVal), t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + c[2]);
     o.start(t);
     o.stop(t + c[2]);
   } catch (e) {}
@@ -110,8 +152,37 @@ function setToggle(el, on) {
 function updateToggles() {
   setToggle($('ubg-sound'), soundOn);
   setToggle($('ubg-shake'), shakeOn);
+  syncVolumeUI();
 }
 updateToggles();
+
+function setPause(paused) {
+  if (paused && state === 'PLAYING') {
+    state = 'PAUSED';
+    pointerDown = false;
+    canvas.style.cursor = 'default';
+    pauseOverlay.style.display = 'flex';
+  } else if (!paused && state === 'PAUSED') {
+    state = 'PLAYING';
+    pauseOverlay.style.display = 'none';
+    canvas.style.cursor = 'none';
+    last = performance.now();
+  }
+}
+
+$('ubg-pause-btn').onclick = () => {
+  if (state === 'PLAYING') setPause(true);
+  else if (state === 'PAUSED') setPause(false);
+};
+$('ubg-resume').onclick = () => setPause(false);
+$('ubg-pause-home').onclick = () => {
+  pauseOverlay.style.display = 'none';
+  pauseBtn.style.display = 'none';
+  menu.style.display = 'flex';
+  state = 'MENU';
+  pointerDown = false;
+  canvas.style.cursor = 'default';
+};
 
 $('ubg-settings-open').onclick = () => { menu.style.display = 'none'; settings.style.display = 'flex'; state = 'SETTINGS'; };
 $('ubg-back').onclick = () => { settings.style.display = 'none'; menu.style.display = 'flex'; state = 'MENU'; };
@@ -120,6 +191,15 @@ $('ubg-sound').onclick = () => {
   try { localStorage.setItem('ubg_sound', soundOn ? '1' : '0'); } catch (e) {}
   updateToggles();
 };
+volSlider.addEventListener('input', () => {
+  volume = clamp(Number(volSlider.value) / 100, 0, 1);
+  if (volume > 0 && !soundOn) {
+    soundOn = true;
+    try { localStorage.setItem('ubg_sound', '1'); } catch (e) {}
+  }
+  try { localStorage.setItem('ubg_volume', String(volume)); } catch (e) {}
+  updateToggles();
+});
 $('ubg-shake').onclick = () => {
   shakeOn = !shakeOn;
   if (!shakeOn) shake = 0;
@@ -128,7 +208,20 @@ $('ubg-shake').onclick = () => {
 };
 $('ubg-play').onclick = () => startGame();
 $('ubg-retry').onclick = () => startGame();
-$('ubg-home').onclick = () => { over.style.display = 'none'; menu.style.display = 'flex'; state = 'MENU'; pointerDown = false; };
+$('ubg-home').onclick = () => {
+  over.style.display = 'none';
+  pauseBtn.style.display = 'none';
+  menu.style.display = 'flex';
+  state = 'MENU';
+  pointerDown = false;
+};
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    if (state === 'PLAYING') { e.preventDefault(); setPause(true); }
+    else if (state === 'PAUSED') { e.preventDefault(); setPause(false); }
+  }
+});
 
 function inputPos(e) {
   const r = canvas.getBoundingClientRect();
@@ -138,6 +231,7 @@ function inputPos(e) {
 
 canvas.addEventListener('pointermove', inputPos);
 canvas.addEventListener('pointerdown', e => {
+  if (state !== 'PLAYING') return;
   inputPos(e);
   pointerDown = true;
   canvas.setPointerCapture?.(e.pointerId);
@@ -163,8 +257,10 @@ function startGame() {
   state = 'PLAYING';
   menu.style.display = 'none';
   settings.style.display = 'none';
+  pauseOverlay.style.display = 'none';
   over.style.display = 'none';
   warningEl.style.display = 'none';
+  pauseBtn.style.display = 'block';
   canvas.style.cursor = 'none';
   last = performance.now();
   pointerDown = false;
@@ -174,6 +270,7 @@ function gameOver() {
   if (state !== 'PLAYING') return;
   state = 'GAMEOVER';
   pointerDown = false;
+  pauseBtn.style.display = 'none';
   canvas.style.cursor = 'default';
   shake = 18;
   sound('boom');
@@ -288,6 +385,7 @@ function hitPlayer(x, y) {
 }
 
 function update(dt) {
+  if (state === 'PAUSED') return;
   time += dt;
   stars.forEach(s => {
     s.y += s.v * dt * (ship?.speed > 0 ? 1.8 : 1);
@@ -612,7 +710,7 @@ function draw() {
   particles.forEach(p => { ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); });
   ctx.globalAlpha = 1;
 
-  if (state === 'PLAYING' || state === 'GAMEOVER') {
+  if (state === 'PLAYING' || state === 'PAUSED' || state === 'GAMEOVER') {
     asteroids.forEach(a => {
       ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
       ctx.fillStyle = '#475569'; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
@@ -648,11 +746,11 @@ function draw() {
 
     if (ship) drawShip();
     drawBoss();
-    if (state === 'PLAYING') drawHud();
+    if (state === 'PLAYING' || state === 'PAUSED') drawHud();
   }
 
   ctx.restore();
-  if (shake > 0) shake *= .86;
+  if (state !== 'PAUSED' && shake > 0) shake *= .86;
   if (shake < .3) shake = 0;
 }
 
