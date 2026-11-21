@@ -17,7 +17,7 @@
       <div id="ubg-best-menu" style="font-size:30px;font-weight:900;color:#facc15;margin:4px 0 25px">0</div>
       <button id="ubg-play" style="width:225px;padding:15px;margin:6px;background:linear-gradient(100deg,#0891b2,#22d3ee);color:#03131a;border:0;border-radius:5px;font-weight:900;letter-spacing:3px;cursor:pointer">▶ BẮT ĐẦU</button>
       <button id="ubg-settings-open" style="width:225px;padding:13px;margin:6px;background:#111c30;color:#cbd5e1;border:1px solid #334155;border-radius:5px;font-weight:700;letter-spacing:2px;cursor:pointer">⚙ CÀI ĐẶT</button>
-      <div style="position:absolute;bottom:24px;color:#475569;font-size:9px;letter-spacing:2px">HỆ THỐNG SẴN SÀNG // CHẾ ĐỘ CHIẾN ĐẤU</div>
+      <div style="position:absolute;bottom:24px;color:#475569;font-size:9px;letter-spacing:2px">HỆ THỐNG SẴN SÀNG // GRAZE & OVERDRIVE</div>
     </div>
 
     <!-- Cài đặt -->
@@ -44,7 +44,7 @@
       </div>
 
       <div style="margin-top:16px;color:#64748b;font-size:11px;line-height:1.9;text-align:center">
-        DI CHUỘT / CẢM ỨNG ĐỂ LÁI · GIỮ ĐỂ BẮN<br>SHIFT / CHUỘT PHẢI ĐỂ LASER BOOST · P / ESC ĐỂ TẠM DỪNG
+        LƯỚT SÁT ĐẠN ĐỊCH (GRAZE) ĐỂ NẠP BOOST & ĐIỂM<br>SHIFT / CHUỘT PHẢI: LASER BOOST · P / ESC: TẠM DỪNG
       </div>
       <button id="ubg-back" style="margin-top:22px;width:170px;padding:12px;background:#172033;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:bold;letter-spacing:2px;cursor:pointer">← QUAY LẠI</button>
     </div>
@@ -72,7 +72,7 @@
 
     <div id="ubg-warning" style="display:none;position:absolute;left:0;right:0;top:43%;padding:16px 4px;background:#9f123955;border-top:1px solid #fb7185;border-bottom:1px solid #fb7185;color:#fecdd3;font-size:17px;font-weight:900;letter-spacing:2px;pointer-events:none;z-index:2">⚠ SOÁI HẠM ĐỊCH ĐANG TIẾN VÀO ⚠</div>
   </div>
-  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Giữ trái: bắn · Shift/Chuột phải: Laser Boost · P: tạm dừng</div>
+  <div style="font-size:12px;color:#94a3b8;margin-top:9px">🖱 Di chuột: lái · Giữ trái: bắn · Lướt sát đạn: Graze · Shift/Chuột phải: Laser Boost · P: tạm dừng</div>
 </div>
 
 <script>
@@ -98,9 +98,9 @@ try {
 } catch (e) {}
 
 let state = 'MENU', pointerDown = false, pointer = { x: W / 2, y: H - 100 }, last = 0, time = 0;
-let score = 0, best = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
-let spawnClock = 50, asteroidClock = 75, orbClock = 420;
-let warning = 0, boss = null, bossLevel = 1, bossAt = 220;
+let score = 0, best = 0, grazeCount = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
+let spawnClock = 50, asteroidClock = 75, orbClock = 420, grazeSoundCool = 0;
+let warning = 0, boss = null, bossLevel = 1, bossAt = 220, bossEnragedBanner = 0;
 
 try { best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
 $('ubg-best-menu').textContent = best;
@@ -150,7 +150,8 @@ function sound(type) {
       boss: [100, 55, .5, 'sawtooth', .09],
       combo: [500, 950, .13, 'sine', .08],
       boost: [240, 1120, .24, 'sawtooth', .085],
-      laser: [980, 420, .08, 'sawtooth', .035]
+      laser: [980, 420, .08, 'sawtooth', .035],
+      graze: [1180, 1560, .05, 'sine', .04]
     };
     const c = cfg[type] || cfg.hit;
     o.type = c[3];
@@ -337,7 +338,6 @@ function addFloatText(x, y, text, color = '#facc15', scale = 1) {
 }
 
 function hitEffect(x, y, baseColor, isHeavy = false) {
-  // Tia lửa chéo & hạt văng tại điểm trúng đạn
   const n = isHeavy ? 10 : 6;
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2);
@@ -406,9 +406,10 @@ window.addEventListener('pointerup', () => { pointerDown = false; });
 window.addEventListener('blur', () => { pointerDown = false; });
 
 function resetWorld() {
-  score = 0; combo = 0; comboLeft = 0; shake = 0; gridScroll = 0; laserTick = 0;
-  spawnClock = 45; asteroidClock = 65; orbClock = 360;
-  time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220; bgmStep = 0;
+  score = 0; best = 0; grazeCount = 0; shake = 0; combo = 0; comboLeft = 0; gridScroll = 0;
+  spawnClock = 45; asteroidClock = 65; orbClock = 360; grazeSoundCool = 0; laserTick = 0;
+  time = 0; warning = 0; boss = null; bossLevel = 1; bossAt = 220; bossEnragedBanner = 0; bgmStep = 0;
+  try { best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
   ship = {
     x: W / 2 - 23, y: H - 115, w: 46, h: 55,
     shield: 0, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
@@ -561,14 +562,14 @@ function fire() {
 function enemyFire(e) {
   const sx = e.x + e.w / 2, sy = e.y + e.h - 2, tx = ship.x + ship.w / 2, ty = ship.y + ship.h / 2;
   const a = Math.atan2(ty - sy, tx - sx), v = 3.5 + Math.min(score / 900, 1.8);
-  if (e.type === 'SCOUT') bullets.push({ x: sx, y: sy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 4.5, color: '#34d399', core: '#d1fae5' });
-  else if (e.type === 'STRIKER') { [-.16, .16].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5, color: '#e879f9', core: '#fae8ff' })); }
-  else { [-.25, 0, .25].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5.5, color: '#fb923c', core: '#ffedd5' })); }
+  if (e.type === 'SCOUT') bullets.push({ x: sx, y: sy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 4.5, color: '#34d399', core: '#d1fae5', grazed: false });
+  else if (e.type === 'STRIKER') { [-.16, .16].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5, color: '#e879f9', core: '#fae8ff', grazed: false })); }
+  else { [-.25, 0, .25].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5.5, color: '#fb923c', core: '#ffedd5', grazed: false })); }
 }
 
 function spawnBoss() {
   const hp = 175 + (bossLevel - 1) * 85;
-  boss = { x: W / 2 - 105, y: -165, w: 210, h: 145, target: 75, vx: 1.7 + bossLevel * .16, hp, maxHp: hp, fire: 75, angle: 0, flash: 0, level: bossLevel };
+  boss = { x: W / 2 - 105, y: -165, w: 210, h: 145, target: 75, vx: 1.7 + bossLevel * .16, hp, maxHp: hp, fire: 75, angle: 0, flash: 0, level: bossLevel, wasEnraged: false };
   sound('boss');
   updateBgmLoop();
 }
@@ -613,6 +614,8 @@ function update(dt) {
   const boosting = ship?.boostTimer > 0;
   const speedMult = (ship?.speed > 0 ? 1.8 : 1) * (boosting ? 2.2 : 1);
   gridScroll = (gridScroll + 0.8 * dt * speedMult) % 52;
+  grazeSoundCool = Math.max(0, grazeSoundCool - dt);
+  bossEnragedBanner = Math.max(0, bossEnragedBanner - dt);
 
   stars.forEach(s => {
     s.y += s.v * dt * speedMult;
@@ -742,22 +745,30 @@ function update(dt) {
     b.fire -= dt;
     b.flash = Math.max(0, b.flash - dt);
 
+    const enragedNow = b.hp < b.maxHp * .48;
+    if (enragedNow && !b.wasEnraged) {
+      b.wasEnraged = true;
+      bossEnragedBanner = 95;
+      addShock(b.x + b.w / 2, b.y + b.h / 2, '#fb376b', 115);
+      shake = Math.max(shake, 10);
+    }
+
     if (b.fire <= 0 && b.y >= b.target) {
-      const cx = b.x + b.w / 2, cy = b.y + b.h - 8, enraged = b.hp < b.maxHp * .48;
-      if (!enraged) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h - 8;
+      if (!enragedNow) {
         for (let k = -3; k <= 3; k++) {
           const a = Math.PI / 2 + k * .2;
-          bullets.push({ x: cx, y: cy, vx: Math.cos(a) * 4.1, vy: Math.sin(a) * 4.1, r: 6.5, color: '#fb7185', core: '#ffe4e6' });
+          bullets.push({ x: cx, y: cy, vx: Math.cos(a) * 4.1, vy: Math.sin(a) * 4.1, r: 6.5, color: '#fb7185', core: '#ffe4e6', grazed: false });
         }
         [-72, 72].forEach(off => {
           const a = Math.atan2(ship.y + ship.h / 2 - (cy - 35), ship.x + ship.w / 2 - (cx + off));
-          bullets.push({ x: cx + off, y: cy - 35, vx: Math.cos(a) * 4.4, vy: Math.sin(a) * 4.4, r: 5.5, color: '#facc15', core: '#fef9c3' });
+          bullets.push({ x: cx + off, y: cy - 35, vx: Math.cos(a) * 4.4, vy: Math.sin(a) * 4.4, r: 5.5, color: '#facc15', core: '#fef9c3', grazed: false });
         });
         b.fire = Math.max(42, 78 - b.level * 4);
       } else {
         for (let k = 0; k < 8; k++) {
           const a = b.angle + k * Math.PI / 4;
-          bullets.push({ x: cx, y: cy - 25, vx: Math.cos(a) * 4.2, vy: Math.sin(a) * 4.2, r: 6, color: '#f43f5e', core: '#ffe4e6' });
+          bullets.push({ x: cx, y: cy - 25, vx: Math.cos(a) * 4.2, vy: Math.sin(a) * 4.2, r: 6, color: '#f43f5e', core: '#ffe4e6', grazed: false });
         }
         b.fire = 18;
       }
@@ -778,14 +789,34 @@ function update(dt) {
     }
   }
 
+  const scx = ship.x + ship.w / 2, scy = ship.y + ship.h / 2;
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.x += b.vx * dt; b.y += b.vy * dt;
-    if (Math.hypot(b.x - (ship.x + ship.w / 2), b.y - (ship.y + ship.h / 2)) < b.r + 13) {
+    const dist = Math.hypot(b.x - scx, b.y - scy);
+    if (dist < b.r + 10) {
       bullets.splice(i, 1);
       if (!boosting) hitPlayer(b.x, b.y);
       else hitEffect(b.x, b.y, '#38bdf8', false);
       continue;
+    }
+    // Cơ chế Graze: lướt gần đạn địch (trong bán kính b.r + 25)
+    if (!b.grazed && dist < b.r + 25 && ship.invuln <= 0) {
+      b.grazed = true;
+      grazeCount++;
+      score += 3;
+      ship.boostEnergy = Math.min(100, ship.boostEnergy + 3.2);
+      if (grazeSoundCool <= 0) { sound('graze'); grazeSoundCool = 5; }
+      sparks.push({
+        x: (b.x + scx) / 2,
+        y: (b.y + scy) / 2,
+        vx: rand(-2.2, 2.2),
+        vy: rand(-2.2, 2.2),
+        len: 8,
+        life: 12,
+        max: 12,
+        color: '#67e8f9'
+      });
     }
     if (b.y > H + 25 || b.y < -25 || b.x < -25 || b.x > W + 25) bullets.splice(i, 1);
   }
@@ -812,7 +843,7 @@ function update(dt) {
       }
     }
     if (destroyed) continue;
-    if (Math.hypot(a.x - (ship.x + ship.w / 2), a.y - (ship.y + ship.h / 2)) < a.r + 13) {
+    if (Math.hypot(a.x - scx, a.y - scy) < a.r + 12) {
       asteroids.splice(i, 1);
       if (boosting) {
         burst(a.x, a.y, '#38bdf8', 20, 3.4);
@@ -829,7 +860,7 @@ function update(dt) {
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     p.y += p.vy * dt; p.phase += .07 * dt;
-    if (Math.hypot(p.x - (ship.x + ship.w / 2), p.y - (ship.y + ship.h / 2)) < p.r + 22) {
+    if (Math.hypot(p.x - scx, p.y - scy) < p.r + 22) {
       if (p.type === 'rapid') ship.rapid = 600;
       if (p.type === 'shield') ship.shield = 1;
       if (p.type === 'speed') ship.speed = 600;
@@ -945,6 +976,16 @@ function drawShip() {
   ctx.beginPath(); ctx.ellipse(0, -5, 4, 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
+  // Điểm lõi hitbox chính xác kiểu Danmaku
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#22d3ee';
+  ctx.beginPath();
+  ctx.arc(cx, cy + 2, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
   if (ship.invuln > 0 && Math.floor(time / 5) % 2 === 0) {
     ctx.strokeStyle = boosting ? '#38bdf8' : '#67e8f9';
     ctx.globalAlpha = .7; ctx.lineWidth = 2;
@@ -1047,11 +1088,23 @@ function drawBoss() {
   ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, 464, 11);
   ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, 464 * ratio, 11);
   ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, 464, 11);
-  ctx.fillStyle = glow; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left'; ctx.fillText('FLAGSHIP LV.' + b.level, 28, 61);
+  ctx.fillStyle = glow; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
+  ctx.fillText('FLAGSHIP LV.' + b.level + (enraged ? ' [ENRAGED]' : ''), 28, 61);
   ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, 492, 61);
+
+  if (bossEnragedBanner > 0) {
+    ctx.save();
+    ctx.globalAlpha = clamp(bossEnragedBanner / 35, 0, 1);
+    ctx.font = '900 13px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fb7185';
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#fb376b';
+    ctx.fillText('⚡ BOSS ENRAGED — TĂNG TỐC ĐẠN ⚡', W / 2, 104);
+    ctx.restore();
+  }
 }
 
-// Ngoại hình đạn người chơi chi tiết (đuôi plasma + vỏ phát sáng + lõi trắng)
 function drawPlayerShot(s) {
   ctx.save();
   const tailX = s.x - s.vx * 2.1;
@@ -1074,7 +1127,6 @@ function drawPlayerShot(s) {
   ctx.lineTo(tailX, tailY);
   ctx.stroke();
 
-  // Đầu đạn dạng viên năng lượng thuôn nhọn + lõi sáng
   ctx.fillStyle = s.color;
   ctx.beginPath();
   ctx.ellipse(s.x, s.y, isOver ? 4.2 : 2.8, isOver ? 8.5 : 6.5, 0, 0, Math.PI * 2);
@@ -1088,13 +1140,11 @@ function drawPlayerShot(s) {
   ctx.restore();
 }
 
-// Ngoại hình đạn địch chi tiết (đuôi hướng bay + vòng hào quang + lõi sáng)
 function drawEnemyBullet(b) {
   ctx.save();
   const mag = Math.hypot(b.vx, b.vy) || 1;
   const nx = b.vx / mag, ny = b.vy / mag;
 
-  // Vệt đuôi nhỏ theo hướng di chuyển
   const tailGrad = ctx.createLinearGradient(b.x, b.y, b.x - nx * (b.r * 3.2), b.y - ny * (b.r * 3.2));
   tailGrad.addColorStop(0, b.color);
   tailGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1106,7 +1156,6 @@ function drawEnemyBullet(b) {
   ctx.lineTo(b.x - nx * (b.r * 3.2), b.y - ny * (b.r * 3.2));
   ctx.stroke();
 
-  // Vòng hào quang
   ctx.globalAlpha = 0.35;
   ctx.fillStyle = b.color;
   ctx.beginPath();
@@ -1114,7 +1163,6 @@ function drawEnemyBullet(b) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  // Thân đạn phát sáng + lõi trung tâm
   ctx.fillStyle = b.color;
   ctx.shadowBlur = 12;
   ctx.shadowColor = b.color;
@@ -1255,25 +1303,26 @@ function drawHud() {
   ctx.fillRect(12, 10, 496, 44); ctx.strokeRect(12, 10, 496, 44);
   ctx.textAlign = 'left'; ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.fillText('ĐIỂM', 25, 25);
   ctx.font = 'bold 18px Segoe UI'; ctx.fillStyle = '#67e8f9'; ctx.fillText(Math.floor(score), 25, 45);
-  ctx.font = 'bold 11px Segoe UI'; ctx.fillStyle = '#facc15'; if (combo > 1) ctx.fillText('COMBO x' + combo, 125, 39);
+  ctx.font = 'bold 11px Segoe UI'; ctx.fillStyle = '#facc15'; if (combo > 1) ctx.fillText('COMBO x' + combo, 118, 39);
+  ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#38bdf8'; ctx.fillText('GRAZE ' + grazeCount, 205, 39);
   ctx.textAlign = 'right'; ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px Segoe UI'; ctx.fillText('KỶ LỤC', 495, 25);
   ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.fillText(best, 495, 45);
 
   const ready = ship.boostEnergy >= 35 || ship.boostTimer > 0;
-  ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 136, 16);
-  ctx.strokeStyle = ready ? '#22d3ee88' : '#334155'; ctx.strokeRect(14, H - 30, 136, 16);
+  ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 142, 16);
+  ctx.strokeStyle = ready ? '#22d3ee99' : '#334155'; ctx.strokeRect(14, H - 30, 142, 16);
   ctx.fillStyle = ship.boostTimer > 0 ? '#22d3ee' : (ready ? '#0891b2' : '#334155');
-  ctx.fillRect(16, H - 28, 132 * (ship.boostEnergy / 100), 12);
+  ctx.fillRect(16, H - 28, 138 * (ship.boostEnergy / 100), 12);
   ctx.fillStyle = '#e0f2fe'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-  ctx.fillText('LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 82, H - 19);
+  ctx.fillText((ready && ship.boostTimer <= 0 ? '⚡ ' : '') + 'LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 85, H - 19);
 
   const active = [];
   if (ship.boostTimer > 0) active.push('LASER BOOST');
   if (ship.shield) active.push('SHIELD');
-  if (ship.rapid > 0) active.push('RAPID');
-  if (ship.speed > 0) active.push('OVERDRIVE');
-  if (ship.beam > 0) active.push('BEAM');
-  if (ship.drone > 0) active.push('DRONES');
+  if (ship.rapid > 0) active.push('RAPID ' + Math.ceil(ship.rapid / 60) + 's');
+  if (ship.speed > 0) active.push('OVERDRIVE ' + Math.ceil(ship.speed / 60) + 's');
+  if (ship.beam > 0) active.push('BEAM ' + Math.ceil(ship.beam / 60) + 's');
+  if (ship.drone > 0) active.push('DRONES ' + Math.ceil(ship.drone / 60) + 's');
   if (active.length) {
     ctx.textAlign = 'center'; ctx.font = 'bold 9px Segoe UI'; ctx.fillStyle = '#c4b5fd';
     ctx.fillText(active.join('  ·  '), W / 2, 83);
