@@ -1,704 +1,119 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARCADE HUB — Play Beyond Limits</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
-
-:root {
-  --bg:#080b12;
-  --panel:#101622;
-  --panel2:#151e2c;
-  --line:#263244;
-  --text:#edf3fc;
-  --muted:#8795aa;
-  --accent:#7c5cff;
-  --cyan:#39d5d0;
-}
-*{box-sizing:border-box}
-body {
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,sans-serif;
-}
-button{font:inherit;cursor:pointer}
-header {
-  height:76px;
-  border-bottom:1px solid #1d2736;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 7%;
-  background:#0b1019;
-  position:sticky;top:0;z-index:10;
-}
-.logo {
-  font-family:Orbitron,sans-serif;
-  font-size:22px;font-weight:800;letter-spacing:2px;
-}
-.logo span{color:var(--cyan)}
-nav{display:flex;gap:30px}
-nav button {
-  background:none;border:0;color:var(--muted);
-  font-size:13px;font-weight:600;
-}
-nav button.active,nav button:hover{color:white}
-.login {
-  background:var(--accent);color:white;border:0;
-  padding:11px 21px;border-radius:7px;font-weight:700;
-}
-.container{width:min(1120px,88%);margin:auto}
-.page{display:none;padding:55px 0 90px}
-.page.active{display:block}
-.hero {
-  min-height:340px;border:1px solid #283347;
-  border-radius:17px;padding:48px;
-  background:
-  radial-gradient(ellipse at 80% 20%,#49338b55,transparent 45%),
-  radial-gradient(ellipse at 20% 100%,#087d8050,transparent 45%),
-  linear-gradient(125deg,#151d30,#0d1421 65%,#17142b);
-  position:relative;overflow:hidden;
-}
-.hero:after {
-  content:"";position:absolute;width:290px;height:290px;
-  border:1px solid #ffffff16;border-radius:50%;
-  right:8%;top:25px;
-  box-shadow:0 0 0 35px #ffffff06,0 0 0 70px #ffffff04;
-}
-.eyebrow {
-  color:var(--cyan);font-size:11px;font-weight:800;
-  letter-spacing:3px;
-}
-h1 {
-  font-family:Orbitron,sans-serif;
-  font-size:clamp(30px,5vw,53px);
-  max-width:600px;line-height:1.2;margin:17px 0;
-}
-.hero p{color:#a8b5c8;max-width:490px;line-height:1.8;font-size:14px}
-.primary {
-  margin-top:17px;background:var(--cyan);color:#061316;
-  border:0;border-radius:6px;padding:14px 23px;font-weight:800;
-}
-.section-head {
-  display:flex;align-items:center;justify-content:space-between;
-  margin:48px 0 20px;
-}
-h2{font-family:Orbitron,sans-serif;font-size:19px;letter-spacing:1px}
-.section-head small{color:var(--muted)}
-.games {
-  display:grid;grid-template-columns:repeat(3,1fr);gap:19px;
-}
-.game-card {
-  border:1px solid var(--line);background:var(--panel);
-  border-radius:12px;overflow:hidden;transition:.2s;
-}
-.game-card:hover{transform:translateY(-5px);border-color:#7562dc}
-.game-art {
-  height:170px;display:grid;place-items:center;
-  font-size:57px;position:relative;overflow:hidden;
-}
-.space {
-  background:radial-gradient(circle at 50% 50%,#244c70,#101a30 55%,#090e18);
-}
-.coming {
-  background:radial-gradient(circle at 50% 50%,#55336d,#171529 60%,#0c1020);
-}
-.racing {
-  background:radial-gradient(circle at 50% 50%,#733c35,#23182a 65%,#0d1019);
-}
-.game-info{padding:18px}
-.game-info h3{margin:0 0 8px;font-size:16px}
-.game-info p{font-size:12px;color:var(--muted);line-height:1.6;min-height:38px}
-.tag {
-  display:inline-block;color:var(--cyan);font-size:10px;
-  background:#39d5d014;padding:5px 8px;border-radius:4px;
-}
-.play {
-  width:100%;margin-top:15px;background:#202b3d;
-  color:white;border:1px solid #34435a;
-  border-radius:6px;padding:10px;font-weight:700;
-}
-.play:hover{background:#34435a}
-.stats {
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:15px;margin-top:25px;
-}
-.stat {
-  padding:22px;background:var(--panel);
-  border:1px solid var(--line);border-radius:10px;
-}
-.stat strong{font:700 24px Orbitron,sans-serif}
-.stat p{color:var(--muted);font-size:12px;margin-bottom:0}
-table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:10px;overflow:hidden}
-th,td{text-align:left;padding:17px;border-bottom:1px solid var(--line);font-size:13px}
-th{color:var(--muted);font-size:11px;letter-spacing:1px}
-td:last-child{color:var(--cyan);font-weight:700}
-.notice {
-  border:1px solid #34435a;background:#111b29;
-  color:#aab8cb;border-radius:8px;padding:14px;
-  font-size:12px;line-height:1.7;margin-top:20px;
-}
-.profile-box {
-  padding:30px;background:var(--panel);
-  border:1px solid var(--line);border-radius:12px;
-}
-.avatar {
-  width:65px;height:65px;border-radius:50%;
-  display:grid;place-items:center;background:#28224b;font-size:28px;
-}
-footer {
-  border-top:1px solid var(--line);padding:30px 7%;
-  color:var(--muted);font-size:12px;text-align:center;
-}
-@media(max-width:750px){
-  header{padding:0 5%;height:auto;min-height:70px;flex-wrap:wrap;gap:15px;padding-top:15px;padding-bottom:15px}
-  nav{order:3;width:100%;justify-content:space-between;gap:8px}
-  nav button{font-size:11px}
-  .container{width:90%}
-  .hero{padding:30px 23px}
-  .games{grid-template-columns:1fr}
-  .stats{grid-template-columns:1fr}
-  .page{padding-top:30px}
-  th,td{padding:12px 8px;font-size:11px}
-}
-</style> 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultimate Boss — Phòng Thủ Vũ Trụ Sâu</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="ubg-root">
+  <div class="ubg-viewport">
+    <canvas id="ubg-canvas" width="520" height="660"></canvas>
 
-<header>
-  <div class="logo">ARCADE<span>HUB</span></div>
-  <nav>
-    <button class="active" data-page="home">Trang chủ</button>
-    <button data-page="games">Trò chơi</button>
-    <button data-page="leaderboard">Xếp hạng</button>
-    <button data-page="profile">Hồ sơ</button>
-  </nav>
-  <button class="login" onclick="alert('Hệ thống đăng nhập sẽ được kết nối ở bước tiếp theo!')">Đăng nhập</button>
-</header>
+    <!-- Nút tạm dừng góc trên khi đang chơi -->
+    <button id="ubg-pause-btn" title="Tạm dừng (P)">II</button>
 
-<main class="container">
+    <!-- Nút Boost Laser nhanh cho chuột / cảm ứng -->
+    <button id="ubg-boost-btn" title="Laser Boost (Shift / Chuột phải)">⚡ LASER BOOST</button>
 
-<section class="page active" id="home">
-  <div class="hero">
-    <div class="eyebrow">WELCOME TO YOUR GAMING UNIVERSE</div>
-    <h1>PLAY BEYOND LIMITS.</h1>
-    <p>Một thế giới game của riêng bạn. Khám phá những trò chơi thú vị, chinh phục thử thách và cạnh tranh với những người chơi khác.</p>
-    <button class="primary" onclick="showPage('games')">KHÁM PHÁ GAME →</button>
-  </div>
+    <!-- Menu chính -->
+    <div id="ubg-menu" class="ubg-overlay">
+      <div class="ubg-sub-brand">PHÒNG THỦ VŨ TRỤ SÂU</div>
+      <div class="ubg-title">ULTIMATE<br><span>BOSS</span></div>
+      <div class="ubg-divider"></div>
+      <div class="ubg-best-line">KỶ LỤC CÁ NHÂN: <span id="ubg-best-menu">0</span></div>
 
-  <div class="section-head">
-    <h2>FEATURED GAMES</h2><small>GAME NỔI BẬT</small>
-  </div>
-  <div class="games">
-    <article class="game-card">
-      <div class="game-art space">🚀</div>
-      <div class="game-info">
-        <span class="tag">SPACE SHOOTER</span>
-        <h3>Deep Space Defense</h3>
-        <p>Điều khiển phi thuyền, tiêu diệt kẻ địch và đối đầu với những con boss nguy hiểm.</p>
-        <button class="play" onclick="openGame()">CHƠI GAME →</button>
+      <!-- Bộ chọn chiến cơ -->
+      <div class="ubg-ship-label">CHỌN CHIẾN CƠ</div>
+      <div id="ubg-ship-select">
+        <button data-ship="viper" class="ubg-ship-card">
+          <div class="ubg-ship-name" style="color:#22d3ee">VIPER</div>
+          <div class="ubg-ship-desc">Nhanh · Bắn 2 tia<br>Sạc Boost +25%</div>
+        </button>
+        <button data-ship="titan" class="ubg-ship-card">
+          <div class="ubg-ship-name" style="color:#fb923c">TITAN</div>
+          <div class="ubg-ship-desc">3 Tia Tỏa · Sẵn Khiên<br>Sát thương cao</div>
+        </button>
+        <button data-ship="phantom" class="ubg-ship-card">
+          <div class="ubg-ship-name" style="color:#c084fc">PHANTOM</div>
+          <div class="ubg-ship-desc">Lõi nhỏ · Graze x2<br>Siêu cơ động</div>
+        </button>
       </div>
-    </article>
-    <article class="game-card">
-      <div class="game-art coming">⚔️</div>
-      <div class="game-info">
-        <span class="tag">COMING SOON</span>
-        <h3>Project Combat</h3>
-        <p>Một trò chơi hành động mới đang được phát triển.</p>
-        <button class="play" onclick="alert('Sắp ra mắt!')">SẮP RA MẮT</button>
-      </div>
-    </article>
-    <article class="game-card">
-      <div class="game-art racing">🏎️</div>
-      <div class="game-info">
-        <span class="tag">COMING SOON</span>
-        <h3>Neon Racing</h3>
-        <p>Những cuộc đua tốc độ trong thế giới tương lai.</p>
-        <button class="play" onclick="alert('Sắp ra mắt!')">SẮP RA MẮT</button>
-      </div>
-    </article>
-  </div>
 
-  <div class="stats">
-    <div class="stat"><strong>01</strong><p>GAME ĐANG LÊN KẾ HOẠCH TÍCH HỢP</p></div>
-    <div class="stat"><strong>∞</strong><p>THỬ THÁCH ĐANG CHỜ BẠN</p></div>
-    <div class="stat"><strong>01</strong><p>NỀN TẢNG GAME RIÊNG</p></div>
-  </div>
-</section>
-
-<section class="page" id="games">
-  <div class="eyebrow">EXPLORE THE ARCADE</div>
-  <h1>GAME LIBRARY</h1>
-  <p style="color:var(--muted)">Khám phá toàn bộ trò chơi trong Arcade Hub.</p>
-  <div class="games" style="margin-top:30px">
-    <article class="game-card">
-      <div class="game-art space">🚀</div>
-      <div class="game-info">
-        <span class="tag">SPACE SHOOTER</span>
-        <h3>Deep Space Defense</h3>
-        <p>Trận chiến ngoài không gian bắt đầu.</p>
-        <button class="play" onclick="openGame()">CHƠI GAME →</button>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section class="page" id="leaderboard">
-  <div class="eyebrow">GLOBAL COMPETITION</div>
-  <h1>LEADERBOARD</h1>
-  <p style="color:var(--muted)">Bảng xếp hạng người chơi của Arcade Hub.</p>
-  <div class="notice">Đây là dữ liệu minh họa. Bảng xếp hạng thật sẽ hiển thị sau khi kết nối tài khoản và cơ sở dữ liệu.</div>
-  <div style="overflow-x:auto;margin-top:25px">
-    <table>
-      <thead><tr><th>HẠNG</th><th>NGƯỜI CHƠI</th><th>GAME</th><th>ĐIỂM</th></tr></thead>
-      <tbody>
-        <tr><td>🥇 01</td><td>Player One</td><td>Deep Space Defense</td><td>12,850</td></tr>
-        <tr><td>🥈 02</td><td>Player Two</td><td>Deep Space Defense</td><td>9,420</td></tr>
-        <tr><td>🥉 03</td><td>Player Three</td><td>Deep Space Defense</td><td>7,890</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section class="page" id="profile">
-  <div class="eyebrow">YOUR GAMING IDENTITY</div>
-  <h1>PLAYER PROFILE</h1>
-  <div class="profile-box">
-    <div class="avatar">👤</div>
-    <h2>GUEST PLAYER</h2>
-    <p style="color:var(--muted)">Bạn chưa đăng nhập vào Arcade Hub.</p>
-    <button class="primary" onclick="alert('Đăng nhập sẽ được kết nối ở bước tiếp theo!')">ĐĂNG NHẬP</button>
-  </div>
-</section>
-
-</main>
-
-<footer>© 2026 ARCADE HUB — YOUR GAMES. YOUR WORLD.</footer>
-
-<script>
-function showPage(page){
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(el=>el.classList.remove('active'));
-  document.getElementById(page).classList.add('active');
-  document.querySelector(`[data-page="${page}"]`).classList.add('active');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-document.querySelectorAll('nav button').forEach(button=>{
-  button.addEventListener('click',()=>showPage(button.dataset.page));
-});
-</script>
-
-<script>
-const SUPABASE_URL = "https://jgheidjlidthphzuoelv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_v2jcukqo4U4-O44HPVGRQw_SK82sjii";
-
-const arcadeDB = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-</script>
-
-<style>
-#authOverlay {
-  position:fixed; inset:0; z-index:9999;
-  display:none; align-items:center; justify-content:center;
-  padding:20px; background:rgba(2,5,12,.86);
-  backdrop-filter:blur(12px);
-}
-#authOverlay.show {display:flex}
-#authModal {
-  width:100%; max-width:420px; padding:30px;
-  background:linear-gradient(145deg,#151e30,#0b111d);
-  border:1px solid #35415b; border-radius:16px;
-  box-shadow:0 25px 90px #000b;
-  position:relative;
-}
-#authModal h2 {
-  font-family:Orbitron,sans-serif; text-align:center;
-  color:#edf3fc; font-size:22px;
-}
-#authModal .auth-sub {
-  text-align:center; color:#8795aa; font-size:12px;
-  margin:10px 0 25px;
-}
-#authModal input {
-  width:100%; padding:14px; margin:7px 0;
-  color:white; background:#0b1220;
-  border:1px solid #34435a; border-radius:7px;
-  outline:none;
-}
-#authModal input:focus {border-color:#7c5cff}
-#authModal .auth-submit {
-  width:100%; padding:14px; margin-top:14px;
-  background:#7c5cff; color:white; border:0;
-  border-radius:7px; font-weight:800;
-}
-#authModal .auth-switch {
-  text-align:center; color:#aab8cb; font-size:13px;
-  margin-top:20px;
-}
-#authModal .auth-switch button {
-  color:#39d5d0; background:none; border:0;
-  font-weight:700;
-}
-#authClose {
-  position:absolute; right:15px; top:12px;
-  background:none; color:#8795aa; border:0;
-  font-size:25px;
-}
-#authMessage {
-  color:#39d5d0; text-align:center;
-  font-size:12px; margin-top:12px; line-height:1.5;
-}
-#authModal .auth-error {color:#ff7777}
-#profile .profile-email {
-  color:#39d5d0; font-size:13px;
-}
-@media(max-width:450px) {
-  #authModal {padding:24px 19px}
-}
-</style>
-
-<div id="authOverlay">
-  <div id="authModal">
-    <button id="authClose" type="button">&times;</button>
-    <div class="eyebrow" style="text-align:center">ARCADE HUB ACCOUNT</div>
-    <h2 id="authTitle">WELCOME BACK</h2>
-    <p class="auth-sub" id="authSubtitle">Đăng nhập để tiếp tục cuộc chơi.</p>
-
-    <form id="authForm">
-      <input id="authName" type="text" placeholder="Tên người chơi" maxlength="24" style="display:none">
-      <input id="authEmail" type="email" placeholder="Địa chỉ email" required autocomplete="email">
-      <input id="authPassword" type="password" placeholder="Mật khẩu" required minlength="6" autocomplete="current-password">
-      <input id="authConfirm" type="password" placeholder="Nhập lại mật khẩu" style="display:none" minlength="6">
-      <button class="auth-submit" id="authSubmit" type="submit">ĐĂNG NHẬP</button>
-    </form>
-
-    <div id="authMessage" role="status"></div>
-    <div class="auth-switch">
-      <span id="authSwitchText">Chưa có tài khoản?</span>
-      <button type="button" id="authSwitch">Đăng ký ngay</button>
+      <button id="ubg-play" class="ubg-btn-primary">▶ BẮT ĐẦU</button>
+      <button id="ubg-settings-open" class="ubg-btn-secondary">⚙ CÀI ĐẶT</button>
+      <div class="ubg-menu-footer">3 CHIẾN CƠ · ROGUELITE MODULES · COSMIC EVENTS</div>
     </div>
+
+    <!-- Màn hình chọn nâng cấp Roguelite sau khi hạ Boss -->
+    <div id="ubg-upgrade" class="ubg-overlay">
+      <div class="ubg-upgrade-tag">BOSS ĐÃ BỊ TIÊU DIỆT</div>
+      <h2 class="ubg-upgrade-title">CHỌN MÔ-ĐUN NÂNG CẤP</h2>
+      <div class="ubg-upgrade-sub">Hiệu ứng cộng dồn vĩnh viễn trong suốt lượt chơi</div>
+      <div id="ubg-upgrade-cards"></div>
+    </div>
+
+    <!-- Cài đặt -->
+    <div id="ubg-settings" class="ubg-overlay">
+      <div class="ubg-settings-tag">CẤU HÌNH HỆ THỐNG</div>
+      <h2 class="ubg-settings-title">CÀI ĐẶT</h2>
+
+      <div class="ubg-setting-row">
+        <span>ÂM THANH & NHẠC</span>
+        <button id="ubg-sound" class="ubg-toggle-btn">ON</button>
+      </div>
+
+      <div class="ubg-setting-box">
+        <div class="ubg-vol-head">
+          <span>ÂM LƯỢNG TỔNG</span>
+          <span id="ubg-vol-label">70%</span>
+        </div>
+        <input id="ubg-volume" type="range" min="0" max="100" value="70">
+      </div>
+
+      <div class="ubg-setting-row">
+        <span>RUNG MÀN HÌNH</span>
+        <button id="ubg-shake" class="ubg-toggle-btn">ON</button>
+      </div>
+
+      <div class="ubg-controls-help">
+        TỰ ĐỘNG BẮN KHI VÀO TRẬN · DI CHUỘT / CẢM ỨNG ĐỂ LÁI<br>
+        SHIFT / CHUỘT PHẢI: LASER BOOST · P / ESC: TẠM DỪNG
+      </div>
+      <button id="ubg-back" class="ubg-btn-back">← QUAY LẠI</button>
+    </div>
+
+    <!-- Màn hình tạm dừng -->
+    <div id="ubg-pause" class="ubg-overlay">
+      <div class="ubg-settings-tag">CHIẾN ĐẤU TẠM NGƯNG</div>
+      <h2 class="ubg-pause-title">TẠM DỪNG</h2>
+      <button id="ubg-resume" class="ubg-btn-primary" style="width:210px;margin:6px">▶ TIẾP TỤC</button>
+      <button id="ubg-pause-home" class="ubg-btn-secondary" style="width:210px;margin:6px">MÀN HÌNH CHÍNH</button>
+    </div>
+
+    <!-- Màn hình Game Over -->
+    <div id="ubg-over" class="ubg-overlay">
+      <div class="ubg-over-tag">NHIỆM VỤ THẤT BẠI</div>
+      <h2 class="ubg-over-title">TÀU BỊ PHÁ HỦY</h2>
+      <div class="ubg-over-card">
+        <div class="ubg-over-score-label">ĐIỂM SỐ</div>
+        <div id="ubg-final">0</div>
+        <div id="ubg-stats-over">GRAZE: 0 · MAX COMBO: x1 · BOSS: 0</div>
+        <div class="ubg-over-best">🏆 KỶ LỤC: <span id="ubg-best-over">0</span></div>
+      </div>
+      <button id="ubg-retry">CHƠI LẠI</button>
+      <button id="ubg-home">MÀN HÌNH CHÍNH</button>
+    </div>
+
+    <div id="ubg-warning">⚠ BOSS ĐANG TIẾN VÀO ⚠</div>
   </div>
+  <div class="ubg-hint">🖱 Di chuột: lái · Tự động bắn · Lướt sát đạn: Graze · Shift/Chuột phải: Laser Boost (cần 50%) · P: tạm dừng</div>
 </div>
 
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const overlay = $('authOverlay');
-  let mode = 'login';
-
-  function openAuth() {
-    overlay.classList.add('show');
-    $('authMessage').textContent = '';
-  }
-
-  function closeAuth() {
-    overlay.classList.remove('show');
-  }
-
-  function setMessage(message, error = false) {
-    $('authMessage').textContent = message;
-    $('authMessage').classList.toggle('auth-error', error);
-  }
-
-  function escapeText(value) {
-    return String(value ?? '').replace(/[&<>"']/g, c => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;',
-      '"': '&quot;', "'": '&#39;'
-    })[c]);
-  }
-
-  function setMode(next) {
-    mode = next;
-    const registering = mode === 'register';
-
-    $('authTitle').textContent = registering ? 'CREATE ACCOUNT' : 'WELCOME BACK';
-    $('authSubtitle').textContent = registering
-      ? 'Tạo tài khoản để lưu thành tích của bạn.'
-      : 'Đăng nhập để tiếp tục cuộc chơi.';
-    $('authName').style.display = registering ? 'block' : 'none';
-    $('authConfirm').style.display = registering ? 'block' : 'none';
-    $('authPassword').autocomplete = registering ? 'new-password' : 'current-password';
-    $('authSubmit').textContent = registering ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
-    $('authSwitchText').textContent = registering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
-    $('authSwitch').textContent = registering ? 'Đăng nhập' : 'Đăng ký ngay';
-    $('authName').required = registering;
-    $('authConfirm').required = registering;
-    setMessage('');
-  }
-
-  async function updateUser(user) {
-    const loginButton = document.querySelector('header .login');
-    const profile = document.querySelector('#profile .profile-box');
-
-    if (!loginButton || !profile) return;
-
-    if (!user) {
-      loginButton.textContent = 'ĐĂNG NHẬP';
-      loginButton.onclick = openAuth;
-
-      profile.innerHTML = `
-        <div class="avatar">👤</div>
-        <h2>GUEST PLAYER</h2>
-        <p style="color:var(--muted)">Bạn chưa đăng nhập vào Arcade Hub.</p>
-        <button class="primary" id="profileLogin">ĐĂNG NHẬP</button>
-      `;
-
-      $('profileLogin').onclick = openAuth;
-      return;
-    }
-
-    let displayName = user.user_metadata?.display_name || user.email || 'Player';
-    let username = 'player';
-    let avatarUrl = '';
-    let level = 1;
-    let totalXP = 0;
-
-    const { data: p, error: pe } = await arcadeDB
-      .from('profiles')
-      .select('username, display_name, avatar_url, level, total_xp')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (pe) console.error('Profile error:', pe);
-
-    if (p) {
-      displayName = p.display_name || p.username || displayName;
-      username = p.username || username;
-      avatarUrl = p.avatar_url || '';
-      level = Number(p.level) || 1;
-      totalXP = Number(p.total_xp) || 0;
-    }
-
-    const { data: s, error: se } = await arcadeDB
-      .from('player_stats')
-      .select('games_played, total_score, best_score')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (se) console.error('Stats error:', se);
-
-    const gamesPlayed = Number(s?.games_played) || 0;
-    const totalScore = Number(s?.total_score) || 0;
-    const bestScore = Number(s?.best_score) || 0;
-    const xpProgress = totalXP % 1000;
-
-    const avatarHTML = avatarUrl
-      ? `<img src="${escapeText(avatarUrl)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-      : '👤';
-
-    loginButton.textContent = 'ĐĂNG XUẤT';
-    loginButton.onclick = async () => {
-      const { error } = await arcadeDB.auth.signOut();
-      if (error) alert(error.message);
-    };
-
-    profile.innerHTML = `
-      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-        <div class="avatar" style="width:85px;height:85px;overflow:hidden;flex-shrink:0">
-          ${avatarHTML}
-        </div>
-        <div>
-          <h2 style="margin:0 0 8px">${escapeText(displayName)}</h2>
-          <p class="profile-email">${escapeText(user.email || '')}</p>
-          <p style="color:var(--muted);font-size:12px">@${escapeText(username)}</p>
-        </div>
-      </div>
-
-      <div style="margin-top:30px;padding:20px;background:#0b1220;border:1px solid var(--line);border-radius:10px">
-        <div style="display:flex;justify-content:space-between">
-          <strong style="font-family:Orbitron,sans-serif;color:var(--cyan)">LEVEL ${level}</strong>
-          <span style="font-size:12px;color:var(--muted)">${totalXP.toLocaleString()} EXP</span>
-        </div>
-        <div style="height:9px;background:#263244;border-radius:20px;margin-top:14px;overflow:hidden">
-          <div style="height:100%;width:${xpProgress / 10}%;background:linear-gradient(90deg,#7c5cff,#39d5d0)"></div>
-        </div>
-        <p style="font-size:11px;color:var(--muted)">${xpProgress} / 1000 EXP</p>
-      </div>
-
-      <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px">
-        <div class="stat"><strong>${totalScore.toLocaleString()}</strong><p>TỔNG ĐIỂM</p></div>
-        <div class="stat"><strong>${gamesPlayed.toLocaleString()}</strong><p>LƯỢT GHI ĐIỂM</p></div>
-        <div class="stat"><strong>${bestScore.toLocaleString()}</strong><p>ĐIỂM CAO NHẤT</p></div>
-      </div>
-
-      <button class="primary" id="profileLogout">ĐĂNG XUẤT</button>
-    `;
-
-    $('profileLogout').onclick = async () => {
-      const { error } = await arcadeDB.auth.signOut();
-      if (error) alert(error.message);
-    };
-  }
-
-  $('authSwitch').addEventListener('click', () => {
-    setMode(mode === 'login' ? 'register' : 'login');
-  });
-
-  $('authClose').addEventListener('click', closeAuth);
-
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) closeAuth();
-  });
-
-  overlay.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeAuth();
-  });
-
-  $('authForm').addEventListener('submit', async e => {
-    e.preventDefault();
-
-    const email = $('authEmail').value.trim();
-    const password = $('authPassword').value;
-    const submit = $('authSubmit');
-
-    submit.disabled = true;
-    submit.textContent = 'ĐANG XỬ LÝ...';
-    setMessage('');
-
-    try {
-      if (mode === 'register') {
-        const name = $('authName').value.trim();
-
-        if (!name) throw new Error('Vui lòng nhập tên người chơi.');
-        if (password !== $('authConfirm').value) {
-          throw new Error('Hai mật khẩu không khớp.');
-        }
-
-        const { data, error } = await arcadeDB.auth.signUp({
-          email,
-          password,
-          options: { data: { display_name: name } }
-        });
-
-        if (error) throw error;
-
-        if (data.session) {
-          await updateUser(data.user);
-          setMessage('Đăng ký thành công!');
-          setTimeout(closeAuth, 1000);
-        } else {
-          setMessage('Đăng ký thành công! Hãy kiểm tra email để xác nhận tài khoản.');
-        }
-      } else {
-        const { data, error } = await arcadeDB.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) throw error;
-
-        await updateUser(data.user);
-        setMessage('Đăng nhập thành công!');
-        setTimeout(closeAuth, 800);
-      }
-    } catch (error) {
-      setMessage(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.', true);
-    } finally {
-      submit.disabled = false;
-      submit.textContent = mode === 'register' ? 'TẠO TÀI KHOẢN' : 'ĐĂNG NHẬP';
-    }
-  });
-
-  arcadeDB.auth.onAuthStateChange((event, session) => {
-    updateUser(session?.user || null);
-  });
-
-  arcadeDB.auth.getSession().then(({ data, error }) => {
-    if (error) {
-      console.error('Supabase session:', error);
-      return;
-    }
-    updateUser(data.session?.user || null);
-  });
-
-  document.querySelector('header .login').onclick = openAuth;
-})();
-</script>
-
-<!-- ARCADE HUB GAME PLAYER -->
-<style>
-#gameOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  background: #050811;
-  padding: 16px;
-}
-
-#gameOverlay.show {
-  display: flex;
-  flex-direction: column;
-}
-
-#gameTopbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 4px 16px;
-  color: white;
-  font-family: Inter, sans-serif;
-}
-
-#gameFrame {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  border: 1px solid #263244;
-  border-radius: 12px;
-  background: #080b12;
-}
-
-#closeGame {
-  background: #7c5cff;
-  color: white;
-  border: 0;
-  border-radius: 7px;
-  padding: 10px 18px;
-  font-weight: 700;
-  cursor: pointer;
-}
-</style>
-
-<div id="gameOverlay">
-  <div id="gameTopbar">
-    <strong>🚀 DEEP SPACE DEFENSE</strong>
-    <button id="closeGame" onclick="closeGame()">✕ QUAY LẠI</button>
-  </div>
-
-  <iframe
-    id="gameFrame"
-    src="about:blank"
-    title="Deep Space Defense"
-    allow="fullscreen"
-  ></iframe>
-</div>
-
-<script>
-function openGame() {
-  const overlay = document.getElementById('gameOverlay');
-  const frame = document.getElementById('gameFrame');
-
-  frame.src = './deep-space-defense.html?v=' + Date.now();
-  overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeGame() {
-  const overlay = document.getElementById('gameOverlay');
-  const frame = document.getElementById('gameFrame');
-
-  overlay.classList.remove('show');
-  frame.src = 'about:blank';
-  document.body.style.overflow = '';
-}
-</script>
-
+<!-- Nạp đúng thứ tự: Âm thanh -> Dữ liệu & Đồ họa -> Vòng lặp chính -->
+<script src="audio.js"></script>
+<script src="entities.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
