@@ -1,3 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultimate Boss — Phòng Thủ Vũ Trụ Sâu</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
 <div id="ubg-root" style="font-family:Segoe UI,Arial,sans-serif;text-align:center;user-select:none;color:#e2e8f0">
   <div style="position:relative;display:inline-block;width:min(520px,96vw);aspect-ratio:520/660;overflow:hidden;border:1px solid #26364d;border-radius:14px;background:#030712;box-shadow:0 18px 60px #000b,0 0 28px #0e749055">
     <canvas id="ubg-canvas" width="520" height="660" style="display:block;width:100%;height:100%;background:#030712;cursor:crosshair"></canvas>
@@ -647,7 +667,6 @@ function killEnemy(index) {
   score += gained;
   addFloatText(cx, cy - 8, '+' + gained + (combo > 1 ? ' x' + combo : ''), combo > 1 ? '#facc15' : '#e2e8f0', heavy ? 1.2 : 1);
   if (ship) {
-    // Giảm năng lượng Boost nhận khi hạ địch để tránh tích quá nhanh
     ship.boostEnergy = Math.min(100, ship.boostEnergy + (heavy ? 11 : 6) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
   }
   if (combo > 1) sound('combo');
@@ -895,7 +914,6 @@ function update(rawDt) {
   ship.beam = Math.max(0, ship.beam - dt);
   ship.drone = Math.max(0, ship.drone - dt);
   ship.boostTimer = Math.max(0, ship.boostTimer - dt);
-  // Hồi năng lượng Boost chậm và đều hơn để giữ độ cân bằng
   ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.13 * dt * ship.spec.boostGainMult * ship.mods.boostChargeMult);
   if (ship.cool > 0) ship.cool -= dt;
   if (comboLeft > 0) { comboLeft -= dt; if (comboLeft <= 0) combo = 0; }
@@ -1350,7 +1368,6 @@ function drawMegaBeam() {
   ctx.restore();
 }
 
-// Ngoại hình mới cho 3 loại kẻ địch thường
 function drawEnemy(e) {
   const flashed = (e.hitFlash || 0) > 0;
   const fillCol = flashed ? '#ffffff' : e.color;
@@ -1358,7 +1375,6 @@ function drawEnemy(e) {
   ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
 
   if (e.type === 'SCOUT') {
-    // Chiến cơ trinh sát mũi nhọn + cánh gập góc
     ctx.shadowBlur = flashed ? 18 : 11;
     ctx.shadowColor = flashed ? '#ffffff' : e.color;
     ctx.fillStyle = flashed ? '#ffffff' : '#0b2922';
@@ -1384,7 +1400,6 @@ function drawEnemy(e) {
     ctx.closePath();
     ctx.fill();
   } else if (e.type === 'STRIKER') {
-    // Tàu đánh chặn hình thoi hai ngạnh mũi nhọn + lõi năng lượng
     ctx.shadowBlur = flashed ? 20 : 13;
     ctx.shadowColor = flashed ? '#ffffff' : e.color;
     ctx.fillStyle = flashed ? '#ffffff' : '#291036';
@@ -1408,7 +1423,6 @@ function drawEnemy(e) {
     ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
     ctx.fill();
   } else {
-    // Pháo đài hạng nặng HEAVY: khung giáp đôi + 2 nòng pháo + lõi lò phản ứng
     ctx.shadowBlur = flashed ? 22 : 14;
     ctx.shadowColor = flashed ? '#ffffff' : e.color;
     ctx.fillStyle = flashed ? '#ffffff' : '#2d160b';
@@ -1425,12 +1439,10 @@ function drawEnemy(e) {
     ctx.fill();
     ctx.stroke();
 
-    // Hai nòng pháo hai bên
     ctx.fillStyle = flashed ? '#e2e8f0' : '#9a3412';
     ctx.fillRect(-e.w * 0.46, 2, 7, e.h * 0.44);
     ctx.fillRect(e.w * 0.46 - 7, 2, 7, e.h * 0.44);
 
-    // Lõi lò phản ứng trung tâm
     ctx.strokeStyle = flashed ? '#0f172a' : '#fdba74';
     ctx.lineWidth = 1.8;
     ctx.strokeRect(-11, -11, 22, 22);
@@ -1703,7 +1715,6 @@ function draw() {
   });
 
   if (state === 'PLAYING' || state === 'PAUSED' || state === 'UPGRADE' || state === 'GAMEOVER') {
-    // Ngoại hình mới chi tiết hơn cho thiên thạch
     asteroids.forEach(a => {
       ctx.save();
       ctx.translate(a.x, a.y);
@@ -1723,13 +1734,11 @@ function draw() {
       ctx.fill();
       ctx.stroke();
 
-      // Lớp đá sáng nổi bật phía trên
       ctx.fillStyle = isStorm ? '#7c2d12' : '#475569';
       ctx.beginPath();
       ctx.arc(-a.r * 0.15, -a.r * 0.15, a.r * 0.58, 0, Math.PI * 2);
       ctx.fill();
 
-      // Đường rạn nứt nhỏ
       ctx.strokeStyle = isStorm ? '#fdba7488' : '#1e293b';
       ctx.lineWidth = 1.4;
       a.cracks?.forEach(rk => {
@@ -1739,7 +1748,6 @@ function draw() {
         ctx.stroke();
       });
 
-      // Các hố va chạm
       ctx.fillStyle = isStorm ? '#291009' : '#1e293b';
       a.craters?.forEach(c => {
         ctx.beginPath();
@@ -1840,9 +1848,5 @@ last = performance.now();
 requestAnimationFrame(frame);
 })();
 </script>
-
-<ElicitationsGroup message="Bạn muốn tinh chỉnh hoặc mở rộng thêm gì tiếp theo?">
-  <Elicitation label="Thêm hiệu ứng nứt vỡ cho thiên thạch" query="Thêm hiệu ứng các vết nứt phát sáng dần trên thiên thạch khi sắp vỡ và bắn ra mảnh đá nhỏ khi nổ."/>
-  <Elicitation label="Tăng độ khó và nhịp tấn công của quái thường" query="Tăng thêm kiểu bắn và nhịp di chuyển đa dạng hơn cho kẻ địch thường SCOUT, STRIKER và HEAVY."/>
-  <Elicitation label="Thêm nút bật/tắt Auto-Fire trên HUD" query="Thêm nút bật hoặc tắt chế độ tự động bắn (Auto-Fire) trực tiếp trên màn hình khi đang chơi."/>
-</ElicitationsGroup>
+</body>
+</html>
