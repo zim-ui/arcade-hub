@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -293,7 +292,6 @@ document.querySelectorAll('nav button').forEach(button=>{
 });
 </script>
 
-
 <script>
 const SUPABASE_URL = "https://jgheidjlidthphzuoelv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_v2jcukqo4U4-O44HPVGRQw_SK82sjii";
@@ -303,7 +301,6 @@ const arcadeDB = window.supabase.createClient(
   SUPABASE_KEY
 );
 </script>
-
 
 <style>
 #authOverlay {
@@ -388,8 +385,6 @@ const arcadeDB = window.supabase.createClient(
     </div>
   </div>
 </div>
-
-
 
 <script>
 (() => {
@@ -626,8 +621,6 @@ const arcadeDB = window.supabase.createClient(
 })();
 </script>
 
-
-
 <!-- ARCADE HUB GAME PLAYER -->
 <style>
 #gameOverlay {
@@ -692,7 +685,7 @@ function openGame() {
   const overlay = document.getElementById('gameOverlay');
   const frame = document.getElementById('gameFrame');
 
-  frame.src = 'deep-space-defense.html';
+  frame.src = './deep-space-defense.html?v=' + Date.now();
   overlay.classList.add('show');
   document.body.style.overflow = 'hidden';
 }
