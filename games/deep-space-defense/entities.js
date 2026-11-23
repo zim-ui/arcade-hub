@@ -48,7 +48,7 @@
       title: 'NAM CHÂM HÚT VẬT PHẨM',
       desc: 'Tự động hút các lõi năng lượng rơi gần tàu',
       color: '#4ade80',
-      apply: s => { s.mods.magnetRange += 135; }
+      apply: s => { s.mods.magnetRange += 165; }
     },
     {
       id: 'boostcap',
@@ -85,7 +85,7 @@
 
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(clamp((pointer.x - cx) * 0.006, -0.3, 0.3));
+    ctx.rotate(clamp((pointer.x - cx) * 0.005, -0.3, 0.3));
 
     const flame = rand(boosting ? 22 : 13, boosting ? 34 : 22);
     ctx.fillStyle = boosting ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : primary);
@@ -359,12 +359,12 @@
       ctx.restore();
 
       const ratio = Math.max(0, b.hp / b.maxHp);
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, 464, 11);
-      ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, 464 * ratio, 11);
-      ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, 464, 11);
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, W - 56, 11);
+      ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, (W - 56) * ratio, 11);
+      ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, W - 56, 11);
       ctx.fillStyle = glow; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
       ctx.fillText('VORTEX CORE LV.' + b.level + (enraged ? ' [ENRAGED]' : ''), 28, 61);
-      ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, 492, 61);
+      ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, W - 28, 61);
     } else {
       const glow = enraged ? '#fb376b' : '#38bdf8';
       ctx.save();
@@ -389,12 +389,12 @@
       ctx.restore();
 
       const ratio = Math.max(0, b.hp / b.maxHp);
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, 464, 11);
-      ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, 464 * ratio, 11);
-      ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, 464, 11);
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, W - 56, 11);
+      ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, (W - 56) * ratio, 11);
+      ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, W - 56, 11);
       ctx.fillStyle = glow; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
       ctx.fillText('FLAGSHIP LV.' + b.level + (enraged ? ' [ENRAGED]' : ''), 28, 61);
-      ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, 492, 61);
+      ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, W - 28, 61);
     }
 
     if (bossEnragedBanner > 0) {
