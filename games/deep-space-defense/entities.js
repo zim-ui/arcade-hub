@@ -142,7 +142,6 @@
     });
     ctx.globalAlpha = 1;
 
-    // 2 Bóng ma phân thân khi Phantom kích hoạt Chrono Boost
     if (ship.type === 'phantom' && boosting) {
       [-58, 58].forEach(off => {
         drawShipChassis(ctx, ship, cx + off, cy + 8, tilt, 0.58, true);
@@ -304,7 +303,6 @@
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
 
-    // Hào quang vàng cho quái Tinh Nhuệ (Elite)
     if (e.elite) {
       ctx.save();
       ctx.rotate(time * 0.04);
@@ -401,7 +399,7 @@
   };
 
   UBG.drawBoss = function () {
-    const { ctx, boss, W, H, time, bossEnragedBanner } = UBG;
+    const { ctx, boss, ship, W, H, time, bossEnragedBanner } = UBG;
     if (!boss) return;
     const b = boss, cx = b.x + b.w / 2, cy = b.y + b.h / 2, enraged = b.hp < b.maxHp * 0.48;
 
@@ -417,7 +415,160 @@
       ctx.restore();
     }
 
-    if (b.kind === 'VORTEX') {
+    if (b.kind === 'DREADNOUGHT') {
+      const glow = enraged ? '#fb376b' : '#ef4444';
+      const gold = enraged ? '#fde047' : '#f59e0b';
+      const aliveTurrets = (b.turrets || []).filter(t => t.hp > 0).length;
+      const coreExposed = aliveTurrets === 0;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Cầu nối cánh giáp nặng nối ra 2 pháo đài
+      ctx.fillStyle = b.flash > 0 ? '#ffffff' : '#1c1917';
+      ctx.strokeStyle = glow;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-162, -16);
+      ctx.lineTo(-65, -34);
+      ctx.lineTo(65, -34);
+      ctx.lineTo(162, -16);
+      ctx.lineTo(152, 26);
+      ctx.lineTo(75, 22);
+      ctx.lineTo(-75, 22);
+      ctx.lineTo(-152, 26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Thân pháo đài trung tâm (Citadel)
+      ctx.fillStyle = b.flash > 0 ? '#ffffff' : (enraged ? '#450a0a' : '#291518');
+      ctx.strokeStyle = b.flash > 0 ? '#ffffff' : glow;
+      ctx.lineWidth = 3.2;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = glow;
+      ctx.beginPath();
+      ctx.moveTo(0, 74);
+      ctx.lineTo(-56, 48);
+      ctx.lineTo(-78, -10);
+      ctx.lineTo(-58, -66);
+      ctx.lineTo(0, -52);
+      ctx.lineTo(58, -66);
+      ctx.lineTo(78, -10);
+      ctx.lineTo(56, 48);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Vòng năng lượng lõi trung tâm
+      ctx.strokeStyle = coreExposed ? '#fde047' : gold;
+      ctx.lineWidth = coreExposed ? 3 : 2;
+      ctx.beginPath();
+      ctx.arc(0, 8, 34, b.angle, b.angle + Math.PI * 1.45);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 8, 25, -b.angle * 1.4, -b.angle * 1.4 + Math.PI * 1.3);
+      ctx.stroke();
+
+      // Lõi phản ứng trung tâm
+      ctx.fillStyle = coreExposed ? '#fef08a' : glow;
+      ctx.shadowBlur = coreExposed ? 26 : 18;
+      ctx.shadowColor = coreExposed ? '#facc15' : glow;
+      ctx.beginPath();
+      ctx.arc(0, 8, 17 + Math.sin(time * 0.14) * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 8, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Vẽ 2 Pháo Đài Hai Bên Cánh
+      (b.turrets || []).forEach(t => {
+        ctx.save();
+        ctx.translate(t.dx, t.dy);
+        if (t.hp > 0) {
+          const tFlash = t.flash > 0;
+          ctx.fillStyle = tFlash ? '#ffffff' : '#1e1b18';
+          ctx.strokeStyle = tFlash ? '#ffffff' : gold;
+          ctx.lineWidth = 2.4;
+          ctx.shadowBlur = 14;
+          ctx.shadowColor = gold;
+
+          // Bệ pháo hình lục giác bọc thép
+          ctx.beginPath();
+          ctx.moveTo(0, -24);
+          ctx.lineTo(26, -12);
+          ctx.lineTo(26, 14);
+          ctx.lineTo(0, 25);
+          ctx.lineTo(-26, 14);
+          ctx.lineTo(-26, -12);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Nòng pháo đôi tự động xoay khóa mục tiêu người chơi
+          const tx = cx + t.dx, ty = cy + t.dy;
+          const aim = ship
+            ? Math.atan2((ship.y + ship.h / 2) - ty, (ship.x + ship.w / 2) - tx)
+            : Math.PI / 2;
+          ctx.save();
+          ctx.rotate(aim - Math.PI / 2);
+          ctx.fillStyle = tFlash ? '#ffffff' : '#78350f';
+          ctx.strokeStyle = gold;
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(-10, 4, 6, 22);
+          ctx.strokeRect(-10, 4, 6, 22);
+          ctx.fillRect(4, 4, 6, 22);
+          ctx.strokeRect(4, 4, 6, 22);
+          ctx.restore();
+
+          // Tâm năng lượng pháo đài
+          ctx.fillStyle = tFlash ? '#0f172a' : '#fef08a';
+          ctx.beginPath();
+          ctx.arc(0, 0, 7, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Thanh máu riêng phía trên mỗi pháo đài
+          const tRatio = Math.max(0, t.hp / t.maxHp);
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(-24, -34, 48, 5);
+          ctx.fillStyle = tFlash ? '#ffffff' : gold;
+          ctx.fillRect(-24, -34, 48 * tRatio, 5);
+          ctx.strokeStyle = '#78716c';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-24, -34, 48, 5);
+        } else {
+          // Hố cháy đen khi pháo đài cánh đã bị phá hủy
+          ctx.fillStyle = '#09090b';
+          ctx.strokeStyle = '#57534e';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, 17, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.strokeStyle = '#ef444488';
+          ctx.beginPath();
+          ctx.moveTo(-9, -9); ctx.lineTo(9, 9);
+          ctx.moveTo(9, -9); ctx.lineTo(-9, 9);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      ctx.restore();
+
+      const ratio = Math.max(0, b.hp / b.maxHp);
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(28, 68, W - 56, 11);
+      ctx.fillStyle = b.flash > 0 ? '#ffffff' : glow; ctx.fillRect(28, 68, (W - 56) * ratio, 11);
+      ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(28, 68, W - 56, 11);
+      ctx.fillStyle = coreExposed ? '#facc15' : glow; ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'left';
+      const statusTag = coreExposed ? ' [CORE EXPOSED +25% DMG]' : ` [PHÁO ĐÀI CÁNH: ${aliveTurrets}/2]`;
+      ctx.fillText('DREADNOUGHT LV.' + b.level + statusTag + (enraged ? ' [ENRAGED]' : ''), 28, 61);
+      ctx.textAlign = 'right'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, W - 28, 61);
+    } else if (b.kind === 'VORTEX') {
       const glow = enraged ? '#fb376b' : '#c084fc';
       ctx.save();
       ctx.translate(cx, cy);
