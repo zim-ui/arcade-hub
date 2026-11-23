@@ -6,12 +6,12 @@
   UBG.SHIP_SPECS = {
     viper: {
       name: 'VIPER', primary: '#22d3ee', hull: '#26384f', trim: '#9fb4ca',
-      smoothRate: 0.78, hitboxR: 9.5, grazeR: 25, grazeScore: 3, boostGainMult: 1.2,
+      smoothRate: 0.78, hitboxR: 9.5, grazeR: 25, grazeScore: 3, boostGainMult: 1.25,
       baseDamage: 1, baseCool: 12, startShield: 0, pattern: 'twin'
     },
     titan: {
       name: 'TITAN', primary: '#fb923c', hull: '#3a241b', trim: '#fdba74',
-      smoothRate: 0.83, hitboxR: 11, grazeR: 24, grazeScore: 3, boostGainMult: 0.95,
+      smoothRate: 0.83, hitboxR: 11, grazeR: 24, grazeScore: 3, boostGainMult: 1.0,
       baseDamage: 1.35, baseCool: 14, startShield: 1, pattern: 'spread3'
     },
     phantom: {
@@ -22,6 +22,13 @@
   };
 
   UBG.UPGRADE_POOL = [
+    {
+      id: 'missiles',
+      title: 'TÊN LỬA TẦM NHIỆT (+2 QUẢ)',
+      desc: 'Tự động phóng tên lửa uốn lượn truy đuổi mục tiêu gần nhất',
+      color: '#fb7185',
+      apply: s => { s.mods.missiles += 2; }
+    },
     {
       id: 'multishot',
       title: 'ĐA NÒNG PLASMA (+2 TIA)',
@@ -39,7 +46,7 @@
     {
       id: 'damage',
       title: 'ĐẦU ĐẠN XUYÊN PHÁ (+35% DMG)',
-      desc: 'Tăng sát thương cơ bản của mọi phát bắn',
+      desc: 'Tăng sát thương cơ bản của mọi phát bắn & tên lửa',
       color: '#facc15',
       apply: s => { s.mods.damageMult += 0.35; }
     },
@@ -48,14 +55,14 @@
       title: 'NAM CHÂM HÚT VẬT PHẨM',
       desc: 'Tự động hút các lõi năng lượng rơi gần tàu',
       color: '#4ade80',
-      apply: s => { s.mods.magnetRange += 165; }
+      apply: s => { s.mods.magnetRange += 175; }
     },
     {
       id: 'boostcap',
       title: 'LÒ PHẢN ỨNG BOOST (+30%)',
-      desc: 'Tăng tốc độ nạp năng lượng Laser Boost & +25% thanh hiện tại',
+      desc: 'Tăng tốc độ nạp tuyệt kỹ & hồi ngay +30% thanh năng lượng',
       color: '#c084fc',
-      apply: s => { s.mods.boostChargeMult += 0.3; s.boostEnergy = Math.min(100, s.boostEnergy + 25); }
+      apply: s => { s.mods.boostChargeMult += 0.3; s.boostEnergy = Math.min(100, s.boostEnergy + 30); }
     },
     {
       id: 'aegis',
@@ -66,29 +73,16 @@
     }
   ];
 
-  UBG.drawShip = function () {
-    const { ctx, ship, trail, pointer, time } = UBG;
-    const x = ship.x, y = ship.y, w = ship.w, h = ship.h, cx = x + w / 2, cy = y + h / 2;
+  function drawShipChassis(ctx, ship, cx, cy, tilt, alpha = 1, isClone = false) {
     const boosting = ship.boostTimer > 0;
-    const primary = ship.spec.primary;
-    trail.push({ x: cx, y: y + h - 5, boost: boosting });
-    if (trail.length > 16) trail.shift();
-
-    trail.forEach((p, i) => {
-      ctx.globalAlpha = (i / trail.length) * (p.boost ? 0.45 : 0.22);
-      ctx.fillStyle = p.boost ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : primary);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, (p.boost ? 3.5 : 2) + i * 0.26, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
+    const primary = isClone ? '#e879f9' : ship.spec.primary;
     ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.translate(cx, cy);
-    ctx.rotate(clamp((pointer.x - cx) * 0.005, -0.3, 0.3));
+    ctx.rotate(tilt);
 
     const flame = rand(boosting ? 22 : 13, boosting ? 34 : 22);
-    ctx.fillStyle = boosting ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : primary);
+    ctx.fillStyle = isClone ? '#c084fc' : (boosting ? '#38bdf8' : (ship.speed > 0 ? '#facc15' : primary));
     ctx.shadowBlur = boosting ? 20 : 14;
     ctx.shadowColor = ctx.fillStyle;
     ctx.beginPath();
@@ -97,8 +91,8 @@
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = ship.spec.hull;
-    ctx.strokeStyle = ship.spec.trim;
+    ctx.fillStyle = isClone ? '#3b0764' : ship.spec.hull;
+    ctx.strokeStyle = isClone ? '#e879f9' : ship.spec.trim;
     ctx.lineWidth = 1.5;
     if (ship.type === 'titan') {
       ctx.beginPath();
@@ -114,7 +108,7 @@
       ctx.closePath(); ctx.fill(); ctx.stroke();
     }
 
-    ctx.fillStyle = '#dbeafe';
+    ctx.fillStyle = isClone ? '#f5d0fe' : '#dbeafe';
     ctx.beginPath();
     ctx.moveTo(0, -25); ctx.lineTo(-7, 8); ctx.lineTo(0, 17); ctx.lineTo(7, 8);
     ctx.closePath();
@@ -127,6 +121,35 @@
     ctx.ellipse(0, -5, 4, 11, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  }
+
+  UBG.drawShip = function () {
+    const { ctx, ship, trail, pointer, time } = UBG;
+    const x = ship.x, y = ship.y, w = ship.w, h = ship.h, cx = x + w / 2, cy = y + h / 2;
+    const boosting = ship.boostTimer > 0;
+    const primary = ship.spec.primary;
+    const tilt = clamp((pointer.x - cx) * 0.005, -0.3, 0.3);
+
+    trail.push({ x: cx, y: y + h - 5, boost: boosting });
+    if (trail.length > 16) trail.shift();
+
+    trail.forEach((p, i) => {
+      ctx.globalAlpha = (i / trail.length) * (p.boost ? 0.45 : 0.22);
+      ctx.fillStyle = p.boost ? primary : (ship.speed > 0 ? '#facc15' : primary);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, (p.boost ? 3.5 : 2) + i * 0.26, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // 2 Bóng ma phân thân khi Phantom kích hoạt Chrono Boost
+    if (ship.type === 'phantom' && boosting) {
+      [-58, 58].forEach(off => {
+        drawShipChassis(ctx, ship, cx + off, cy + 8, tilt, 0.58, true);
+      });
+    }
+
+    drawShipChassis(ctx, ship, cx, cy, tilt, 1, false);
 
     ctx.save();
     ctx.fillStyle = '#ffffff';
@@ -138,7 +161,7 @@
     ctx.restore();
 
     if (ship.invuln > 0 && Math.floor(time / 5) % 2 === 0) {
-      ctx.strokeStyle = boosting ? '#38bdf8' : '#67e8f9';
+      ctx.strokeStyle = boosting ? primary : '#67e8f9';
       ctx.globalAlpha = 0.7;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -172,22 +195,52 @@
     const { ctx, ship, time } = UBG;
     if (!ship || ship.boostTimer <= 0) return;
     const cx = ship.x + ship.w / 2;
-    const lw = 6 + Math.sin(time * 0.45) * 2;
-    [-19, 19].forEach(off => {
-      const lx = cx + off;
+
+    if (ship.type === 'viper') {
+      const lw = 6.5 + Math.sin(time * 0.45) * 2;
+      [-19, 19].forEach(off => {
+        const lx = cx + off;
+        ctx.save();
+        const grad = ctx.createLinearGradient(lx - lw * 2, 0, lx + lw * 2, 0);
+        grad.addColorStop(0, '#0ea5e900');
+        grad.addColorStop(0.3, '#22d3eecc');
+        grad.addColorStop(0.5, '#ffffff');
+        grad.addColorStop(0.7, '#22d3eecc');
+        grad.addColorStop(1, '#0ea5e900');
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = '#22d3ee';
+        ctx.fillRect(lx - lw * 2, 0, lw * 4, ship.y + 6);
+        ctx.restore();
+      });
+    } else if (ship.type === 'phantom') {
+      const lw = 4.5 + Math.sin(time * 0.5) * 1.5;
+      [-58, 0, 58].forEach(off => {
+        const lx = cx + off;
+        ctx.save();
+        const grad = ctx.createLinearGradient(lx - lw * 2, 0, lx + lw * 2, 0);
+        grad.addColorStop(0, '#a855f700');
+        grad.addColorStop(0.35, '#c084fcaa');
+        grad.addColorStop(0.5, '#fae8ff');
+        grad.addColorStop(0.65, '#c084fcaa');
+        grad.addColorStop(1, '#a855f700');
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#c084fc';
+        ctx.fillRect(lx - lw * 2, 0, lw * 4, ship.y + 10);
+        ctx.restore();
+      });
+    } else if (ship.type === 'titan') {
       ctx.save();
-      const grad = ctx.createLinearGradient(lx - lw * 2, 0, lx + lw * 2, 0);
-      grad.addColorStop(0, '#0ea5e900');
-      grad.addColorStop(0.3, '#22d3eecc');
-      grad.addColorStop(0.5, '#ffffff');
-      grad.addColorStop(0.7, '#22d3eecc');
-      grad.addColorStop(1, '#0ea5e900');
-      ctx.fillStyle = grad;
-      ctx.shadowBlur = 16;
-      ctx.shadowColor = '#22d3ee';
-      ctx.fillRect(lx - lw * 2, 0, lw * 4, ship.y + 6);
+      ctx.strokeStyle = '#fb923c';
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#fb923c';
+      ctx.beginPath();
+      ctx.arc(cx, ship.y + ship.h / 2, 46 + Math.sin(time * 0.6) * 5, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.restore();
-    });
+    }
   };
 
   UBG.drawMegaBeam = function () {
@@ -206,12 +259,63 @@
     ctx.restore();
   };
 
-  UBG.drawEnemy = function (e) {
+  UBG.drawMissile = function (m) {
     const { ctx } = UBG;
+    if (m.trail && m.trail.length > 1) {
+      ctx.save();
+      for (let i = 1; i < m.trail.length; i++) {
+        const p0 = m.trail[i - 1], p1 = m.trail[i];
+        ctx.globalAlpha = (i / m.trail.length) * 0.55;
+        ctx.strokeStyle = '#fb7185';
+        ctx.lineWidth = (i / m.trail.length) * 4;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle + Math.PI / 2);
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#fb7185';
+    ctx.fillStyle = '#ffe4e6';
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(3.5, 5);
+    ctx.lineTo(0, 3);
+    ctx.lineTo(-3.5, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(0, 6, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  UBG.drawEnemy = function (e) {
+    const { ctx, time } = UBG;
     const flashed = (e.hitFlash || 0) > 0;
     const fillCol = flashed ? '#ffffff' : e.color;
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
+
+    // Hào quang vàng cho quái Tinh Nhuệ (Elite)
+    if (e.elite) {
+      ctx.save();
+      ctx.rotate(time * 0.04);
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 1.8;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#facc15';
+      const r = Math.max(e.w, e.h) * 0.54;
+      ctx.strokeRect(-r, -r, r * 2, r * 2);
+      ctx.restore();
+    }
 
     if (e.type === 'SCOUT') {
       ctx.shadowBlur = flashed ? 18 : 11;
@@ -230,7 +334,7 @@
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = flashed ? '#0f172a' : '#a7f3d0';
+      ctx.fillStyle = flashed ? '#0f172a' : (e.elite ? '#facc15' : '#a7f3d0');
       ctx.beginPath();
       ctx.moveTo(0, 5); ctx.lineTo(5, -6); ctx.lineTo(0, -10); ctx.lineTo(-5, -6);
       ctx.closePath();
@@ -254,7 +358,7 @@
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = flashed ? '#0f172a' : '#f5d0fe';
+      ctx.fillStyle = flashed ? '#0f172a' : (e.elite ? '#facc15' : '#f5d0fe');
       ctx.beginPath();
       ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
       ctx.fill();
@@ -279,7 +383,7 @@
       ctx.fillRect(-e.w * 0.46, 2, 7, e.h * 0.44);
       ctx.fillRect(e.w * 0.46 - 7, 2, 7, e.h * 0.44);
 
-      ctx.strokeStyle = flashed ? '#0f172a' : '#fdba74';
+      ctx.strokeStyle = flashed ? '#0f172a' : (e.elite ? '#facc15' : '#fdba74');
       ctx.lineWidth = 1.8;
       ctx.strokeRect(-11, -11, 22, 22);
       ctx.fillStyle = flashed ? '#0f172a' : '#ffedd5';
@@ -292,7 +396,7 @@
 
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(e.x, e.y - 7, e.w, 3);
-    ctx.fillStyle = flashed ? '#ffffff' : e.color;
+    ctx.fillStyle = flashed ? '#ffffff' : (e.elite ? '#facc15' : e.color);
     ctx.fillRect(e.x, e.y - 7, e.w * Math.max(0, e.hp) / e.maxHp, 3);
   };
 
