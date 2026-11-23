@@ -30,11 +30,9 @@ html, body {
 
 .ubg-viewport {
   position: relative;
-  height: calc(100vh - 38px);
-  max-height: 860px;
-  width: auto;
-  max-width: 96vw;
-  aspect-ratio: 520 / 660;
+  width: min(96vw, calc((100vh - 42px) * (1120 / 640)));
+  max-width: 1320px;
+  aspect-ratio: 1120 / 640;
   overflow: hidden;
   border: 1px solid #26364d;
   border-radius: 14px;
@@ -54,7 +52,7 @@ html, body {
   display: none;
   position: absolute;
   top: 2.6%;
-  right: 17.5%;
+  right: 9.2%;
   width: 32px;
   height: 30px;
   background: #0f2338;
@@ -72,8 +70,8 @@ html, body {
   display: none;
   position: absolute;
   bottom: 12px;
-  right: 12px;
-  padding: 7px 12px;
+  right: 14px;
+  padding: 7px 14px;
   background: #091d30d9;
   color: #38bdf8;
   border: 1px solid #38bdf888;
@@ -112,7 +110,7 @@ html, body {
   line-height: 1.02;
   font-weight: 1000;
   letter-spacing: 2px;
-  margin: 12px 0 6px;
+  margin: 10px 0 6px;
   text-shadow: 0 0 25px #06b6d455;
 }
 
@@ -121,10 +119,10 @@ html, body {
 }
 
 .ubg-divider {
-  width: 140px;
+  width: 180px;
   height: 2px;
   background: linear-gradient(90deg, transparent, #22d3ee, transparent);
-  margin: 10px 0 14px;
+  margin: 10px 0 12px;
 }
 
 .ubg-best-line {
@@ -140,7 +138,7 @@ html, body {
 }
 
 .ubg-ship-label {
-  margin: 14px 0 6px;
+  margin: 12px 0 6px;
   font-size: 10px;
   letter-spacing: 3px;
   color: #94a3b8;
@@ -148,16 +146,16 @@ html, body {
 
 #ubg-ship-select {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
   justify-content: center;
   margin-bottom: 16px;
 }
 
 .ubg-ship-card {
   flex: 1;
-  padding: 10px 6px;
+  padding: 10px 8px;
   background: #0b1526;
   border: 1px solid #334155;
   border-radius: 8px;
@@ -173,15 +171,15 @@ html, body {
 }
 
 .ubg-ship-desc {
-  font-size: 9px;
+  font-size: 10px;
   color: #94a3b8;
   margin-top: 4px;
   line-height: 1.35;
 }
 
 .ubg-btn-primary {
-  width: 225px;
-  padding: 14px;
+  width: 240px;
+  padding: 13px;
   margin: 5px;
   background: linear-gradient(100deg, #0891b2, #22d3ee);
   color: #03131a;
@@ -193,8 +191,8 @@ html, body {
 }
 
 .ubg-btn-secondary {
-  width: 225px;
-  padding: 12px;
+  width: 240px;
+  padding: 11px;
   margin: 5px;
   background: #111c30;
   color: #cbd5e1;
@@ -207,7 +205,7 @@ html, body {
 
 .ubg-menu-footer {
   position: absolute;
-  bottom: 14px;
+  bottom: 12px;
   color: #475569;
   font-size: 9px;
   letter-spacing: 2px;
@@ -244,7 +242,7 @@ html, body {
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  max-width: 360px;
+  max-width: 440px;
 }
 
 #ubg-settings {
@@ -261,13 +259,13 @@ html, body {
 .ubg-settings-title {
   font-size: 30px;
   letter-spacing: 4px;
-  margin: 12px 0 24px;
+  margin: 12px 0 20px;
 }
 
 .ubg-setting-row {
-  width: 285px;
-  padding: 15px 16px;
-  margin: 7px;
+  width: 320px;
+  padding: 14px 16px;
+  margin: 6px;
   background: #101b2e;
   border: 1px solid #26364d;
   border-radius: 7px;
@@ -287,9 +285,9 @@ html, body {
 }
 
 .ubg-setting-box {
-  width: 285px;
-  padding: 15px 16px;
-  margin: 7px;
+  width: 320px;
+  padding: 14px 16px;
+  margin: 6px;
   background: #101b2e;
   border: 1px solid #26364d;
   border-radius: 7px;
@@ -317,17 +315,17 @@ html, body {
 }
 
 .ubg-controls-help {
-  margin-top: 16px;
+  margin-top: 14px;
   color: #64748b;
   font-size: 11px;
-  line-height: 1.9;
+  line-height: 1.8;
   text-align: center;
 }
 
 .ubg-btn-back {
-  margin-top: 22px;
-  width: 170px;
-  padding: 12px;
+  margin-top: 18px;
+  width: 180px;
+  padding: 11px;
   background: #172033;
   color: #e2e8f0;
   border: 1px solid #475569;
@@ -369,7 +367,7 @@ html, body {
 }
 
 .ubg-over-card {
-  padding: 18px 35px;
+  padding: 18px 42px;
   margin: 12px 0 22px;
   background: #ffffff0b;
   border: 1px solid #ffffff20;
@@ -400,7 +398,7 @@ html, body {
 }
 
 #ubg-retry {
-  padding: 13px 30px;
+  padding: 13px 32px;
   background: linear-gradient(90deg, #e11d48, #f97316);
   border: 0;
   border-radius: 25px;
@@ -411,7 +409,7 @@ html, body {
 }
 
 #ubg-home {
-  padding: 10px 24px;
+  padding: 10px 26px;
   margin-top: 12px;
   background: #172033;
   border: 1px solid #475569;
