@@ -220,7 +220,7 @@
 
   boostBtn.onclick = e => { e.stopPropagation(); triggerBoost(); };
 
-  canvas.addEventListener('contextmenu', e => {
+ window.addEventListener('contextmenu', e => {
     e.preventDefault();
     if (UBG.state === 'PLAYING') triggerBoost();
   });
@@ -240,13 +240,12 @@
     UBG.pointer.y = clamp((e.clientY - r.top) * H / r.height, 65, H);
   }
 
-  canvas.addEventListener('pointermove', inputPos);
-  canvas.addEventListener('pointerdown', e => {
-    if (UBG.state !== 'PLAYING') return;
+  window.addEventListener('pointermove', inputPos);
+  window.addEventListener('pointerdown', e => {
+    if (UBG.state !== 'PLAYING' || e.target.closest('button')) return;
     if (e.button === 2) { triggerBoost(); return; }
     inputPos(e);
   });
-
   function resetWorld() {
     const spec = SHIP_SPECS[selectedShip] || SHIP_SPECS.viper;
     UBG.score = 0; UBG.best = 0; grazeCount = 0; maxCombo = 1; bossesKilled = 0;
