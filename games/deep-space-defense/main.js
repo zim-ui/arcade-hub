@@ -61,8 +61,8 @@
 
   let last = 0;
   let grazeCount = 0, maxCombo = 1, bossesKilled = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
-  let spawnClock = 50, asteroidClock = 75, orbClock = 420, grazeSoundCool = 0, eventClock = 680;
-  let warning = 0, bossLevel = 1, bossAt = 220;
+  let spawnClock = 40, asteroidClock = 55, orbClock = 380, grazeSoundCool = 0, eventClock = 640;
+  let warning = 0, bossLevel = 1, bossAt = 240;
   let slowMoTimer = 0, cosmicEvent = null;
   let enemies, bullets, shots, asteroids, particles, sparks, shocks, floatTexts, pickups, stars, laserTick;
 
@@ -220,7 +220,7 @@
 
   boostBtn.onclick = e => { e.stopPropagation(); triggerBoost(); };
 
- window.addEventListener('contextmenu', e => {
+  window.addEventListener('contextmenu', e => {
     e.preventDefault();
     if (UBG.state === 'PLAYING') triggerBoost();
   });
@@ -246,25 +246,26 @@
     if (e.button === 2) { triggerBoost(); return; }
     inputPos(e);
   });
+
   function resetWorld() {
     const spec = SHIP_SPECS[selectedShip] || SHIP_SPECS.viper;
     UBG.score = 0; UBG.best = 0; grazeCount = 0; maxCombo = 1; bossesKilled = 0;
     shake = 0; combo = 0; comboLeft = 0; gridScroll = 0;
-    spawnClock = 50; asteroidClock = 75; orbClock = 420; grazeSoundCool = 0; laserTick = 0; eventClock = 680;
-    UBG.time = 0; warning = 0; UBG.boss = null; bossLevel = 1; bossAt = 220; UBG.bossEnragedBanner = 0; UBG.bgmStep = 0;
+    spawnClock = 40; asteroidClock = 55; orbClock = 380; grazeSoundCool = 0; laserTick = 0; eventClock = 640;
+    UBG.time = 0; warning = 0; UBG.boss = null; bossLevel = 1; bossAt = 240; UBG.bossEnragedBanner = 0; UBG.bgmStep = 0;
     slowMoTimer = 0; cosmicEvent = null;
     try { UBG.best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
     UBG.ship = {
       type: selectedShip,
       spec,
-      x: W / 2 - 23, y: H - 115, w: 46, h: 55,
+      x: W / 2 - 23, y: H - 110, w: 46, h: 55,
       shield: spec.startShield, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
       invuln: 150, cool: 0, boostEnergy: 45, boostTimer: 0,
       mods: { extraGuns: 0, fireRateMult: 1, damageMult: 1, magnetRange: 0, boostChargeMult: 1 }
     };
     enemies = []; bullets = []; shots = []; asteroids = [];
     particles = []; sparks = []; shocks = []; floatTexts = []; pickups = []; UBG.trail = [];
-    stars = Array.from({ length: 130 }, () => ({
+    stars = Array.from({ length: 220 }, () => ({
       x: rand(0, W), y: rand(0, H), r: rand(0.5, 2), v: rand(0.35, 2), a: rand(0.2, 0.95), tw: rand(0.003, 0.016)
     }));
   }
@@ -365,7 +366,7 @@
         ? [48, 48, 3, 1.35, 9, 0.38, '#e879f9']
         : [66, 56, 6, 0.9, 16, 0.55, '#fb923c'];
     const [w, h, hp, vy, points, drop, color] = data;
-    enemies.push({ type, x: rand(35, W - w - 35), y: -h - 5, w, h, hp, maxHp: hp, vy: vy + Math.min(UBG.score / 1700, 0.8), phase: rand(0, 6), fire: rand(65, 120), points, drop, color, hitFlash: 0 });
+    enemies.push({ type, x: rand(45, W - w - 45), y: -h - 5, w, h, hp, maxHp: hp, vy: vy + Math.min(UBG.score / 1700, 0.8), phase: rand(0, 6), fire: rand(65, 120), points, drop, color, hitFlash: 0 });
   }
 
   function spawnAsteroid() {
@@ -386,7 +387,7 @@
       y: -r,
       r,
       vy: rand(1.5, 3.1) * (meteorStorm ? 1.55 : 1),
-      vx: rand(-0.5, 0.5) * (meteorStorm ? 1.6 : 1),
+      vx: rand(-0.6, 0.6) * (meteorStorm ? 1.6 : 1),
       rot: rand(0, 6),
       spin: rand(-0.04, 0.04),
       hp: r > 21 ? 3 : 2,
@@ -480,7 +481,7 @@
   }
 
   function spawnBoss() {
-    const hp = 185 + (bossLevel - 1) * 90;
+    const hp = 210 + (bossLevel - 1) * 100;
     const kind = bossLevel % 2 === 0 ? 'VORTEX' : 'FLAGSHIP';
     UBG.boss = {
       kind,
@@ -488,8 +489,8 @@
       y: -165,
       w: 210,
       h: 145,
-      target: 75,
-      vx: (kind === 'VORTEX' ? 2.05 : 1.7) + bossLevel * 0.16,
+      target: 85,
+      vx: (kind === 'VORTEX' ? 2.6 : 2.2) + bossLevel * 0.2,
       hp,
       maxHp: hp,
       fire: 70,
@@ -516,13 +517,13 @@
     addShock(cx, cy, mainCol, 136);
     addShock(cx, cy, '#22d3ee', 98);
     addFloatText(cx, cy - 16, '+140 ' + b.kind + ' DOWN!', '#facc15', 1.35);
-    addPickup(cx - 28, cy, 'rapid');
-    addPickup(cx + 28, cy, 'beam');
+    addPickup(cx - 32, cy, 'rapid');
+    addPickup(cx + 32, cy, 'beam');
     UBG.score += 140;
     bossesKilled++;
     UBG.boss = null;
     bossLevel++;
-    bossAt = UBG.score + 320;
+    bossAt = UBG.score + 340;
     shake = 25;
     sound('boom');
     openUpgradeDraft();
@@ -638,19 +639,22 @@
       const isMeteorStorm = cosmicEvent?.type === 'METEOR';
       if (!isMeteorStorm) {
         spawnClock -= dt;
-        if (spawnClock <= 0 && enemies.length < 5) { spawnEnemy(); spawnClock = Math.max(34, 92 - UBG.score * 0.045); }
+        if (spawnClock <= 0 && enemies.length < 9) {
+          spawnEnemy();
+          spawnClock = Math.max(22, 62 - UBG.score * 0.035);
+        }
       }
       asteroidClock -= dt;
       if (asteroidClock <= 0) {
         spawnAsteroid();
-        asteroidClock = isMeteorStorm ? rand(14, 24) : rand(48, 82);
+        asteroidClock = isMeteorStorm ? rand(8, 15) : rand(30, 54);
       }
     }
 
     orbClock -= dt;
-    if (orbClock <= 0 && pickups.length < 3) {
-      addPickup(rand(35, W - 35), -10, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
-      orbClock = rand(400, 560);
+    if (orbClock <= 0 && pickups.length < 4) {
+      addPickup(rand(45, W - 45), -10, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
+      orbClock = rand(360, 500);
     }
 
     shots.forEach(s => { s.x += s.vx * dt; s.y += s.vy * dt; });
@@ -660,7 +664,7 @@
       const e = enemies[i];
       e.y += e.vy * dt;
       e.phase += 0.045 * dt;
-      e.x = clamp(e.x + Math.sin(e.phase) * 1.5 * dt, 8, W - e.w - 8);
+      e.x = clamp(e.x + Math.sin(e.phase) * 1.8 * dt, 10, W - e.w - 10);
       e.fire -= dt;
       e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt);
       if (e.fire <= 0 && e.y > 30 && e.y < H - 150) {
@@ -699,7 +703,7 @@
     if (UBG.boss) {
       const b = UBG.boss;
       if (b.y < b.target) b.y += 1.6 * dt;
-      else { b.x += b.vx * dt; if (b.x < 8 || b.x + b.w > W - 8) b.vx *= -1; }
+      else { b.x += b.vx * dt; if (b.x < 16 || b.x + b.w > W - 16) b.vx *= -1; }
       b.angle += 0.035 * dt;
       b.spiralAngle += (b.hp < b.maxHp * 0.48 ? 0.24 : 0.16) * dt;
       b.fire -= dt;
@@ -739,14 +743,14 @@
       if (b.fire <= 0 && b.y >= b.target) {
         const cx = b.x + b.w / 2, cy = b.y + b.h - 8;
         if (b.kind === 'VORTEX') {
-          const arms = enragedNow ? 6 : 4;
+          const arms = enragedNow ? 8 : 6;
           for (let k = 0; k < arms; k++) {
             const a = b.spiralAngle + (k * Math.PI * 2) / arms;
             bullets.push({
               x: cx,
               y: cy - 20,
-              vx: Math.cos(a) * 3.8,
-              vy: Math.sin(a) * 3.8 + 0.7,
+              vx: Math.cos(a) * 3.9,
+              vy: Math.sin(a) * 3.9 + 0.7,
               r: 5.5,
               color: enragedNow ? '#f43f5e' : '#c084fc',
               core: '#fae8ff',
@@ -761,19 +765,19 @@
           b.fire = enragedNow ? 22 : 34;
         } else {
           if (!enragedNow) {
-            for (let k = -3; k <= 3; k++) {
-              const a = Math.PI / 2 + k * 0.2;
-              bullets.push({ x: cx, y: cy, vx: Math.cos(a) * 4.1, vy: Math.sin(a) * 4.1, r: 6.5, color: '#fb7185', core: '#ffe4e6', grazed: false });
+            for (let k = -4; k <= 4; k++) {
+              const a = Math.PI / 2 + k * 0.19;
+              bullets.push({ x: cx, y: cy, vx: Math.cos(a) * 4.2, vy: Math.sin(a) * 4.2, r: 6.5, color: '#fb7185', core: '#ffe4e6', grazed: false });
             }
             [-72, 72].forEach(off => {
               const a = Math.atan2(ship.y + ship.h / 2 - (cy - 35), ship.x + ship.w / 2 - (cx + off));
-              bullets.push({ x: cx + off, y: cy - 35, vx: Math.cos(a) * 4.4, vy: Math.sin(a) * 4.4, r: 5.5, color: '#facc15', core: '#fef9c3', grazed: false });
+              bullets.push({ x: cx + off, y: cy - 35, vx: Math.cos(a) * 4.5, vy: Math.sin(a) * 4.5, r: 5.5, color: '#facc15', core: '#fef9c3', grazed: false });
             });
             b.fire = Math.max(42, 78 - b.level * 4);
           } else {
-            for (let k = 0; k < 8; k++) {
-              const a = b.angle + k * Math.PI / 4;
-              bullets.push({ x: cx, y: cy - 25, vx: Math.cos(a) * 4.2, vy: Math.sin(a) * 4.2, r: 6, color: '#f43f5e', core: '#ffe4e6', grazed: false });
+            for (let k = 0; k < 10; k++) {
+              const a = b.angle + (k * Math.PI * 2) / 10;
+              bullets.push({ x: cx, y: cy - 25, vx: Math.cos(a) * 4.3, vy: Math.sin(a) * 4.3, r: 6, color: '#f43f5e', core: '#ffe4e6', grazed: false });
             }
             b.fire = 18;
           }
@@ -952,18 +956,18 @@
 
     ctx.strokeStyle = slowMoTimer > 0 ? '#22d3ee33' : '#0f294226';
     ctx.lineWidth = 1;
-    for (let gx = 0; gx <= W; gx += 52) {
+    for (let gx = 0; gx <= W; gx += 56) {
       ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
     }
     for (let gy = gridScroll; gy <= H; gy += 52) {
       ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
     }
 
-    let g = ctx.createRadialGradient(110, 190, 5, 110, 190, 240);
+    let g = ctx.createRadialGradient(W * 0.22, H * 0.3, 5, W * 0.22, H * 0.3, 340);
     g.addColorStop(0, '#312e8150'); g.addColorStop(1, '#03071200');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-    g = ctx.createRadialGradient(430, 440, 5, 430, 440, 250);
+    g = ctx.createRadialGradient(W * 0.8, H * 0.68, 5, W * 0.8, H * 0.68, 360);
     g.addColorStop(0, '#07598535'); g.addColorStop(1, '#03071200');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
@@ -1095,17 +1099,17 @@
   function drawHud() {
     const ship = UBG.ship;
     ctx.fillStyle = '#071426d9'; ctx.strokeStyle = '#1e4960'; ctx.lineWidth = 1;
-    ctx.fillRect(12, 10, 496, 44); ctx.strokeRect(12, 10, 496, 44);
+    ctx.fillRect(12, 10, W - 24, 44); ctx.strokeRect(12, 10, W - 24, 44);
     ctx.textAlign = 'left'; ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.fillText('ĐIỂM · ' + ship.spec.name, 25, 25);
     ctx.font = 'bold 18px Segoe UI'; ctx.fillStyle = '#67e8f9'; ctx.fillText(Math.floor(UBG.score), 25, 45);
-    ctx.font = 'bold 11px Segoe UI'; ctx.fillStyle = '#facc15'; if (combo > 1) ctx.fillText('COMBO x' + combo, 128, 39);
-    ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#38bdf8'; ctx.fillText('GRAZE ' + grazeCount, 214, 39);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px Segoe UI'; ctx.fillText('KỶ LỤC', 495, 25);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.fillText(UBG.best, 495, 45);
+    ctx.font = 'bold 11px Segoe UI'; ctx.fillStyle = '#facc15'; if (combo > 1) ctx.fillText('COMBO x' + combo, 145, 39);
+    ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#38bdf8'; ctx.fillText('GRAZE ' + grazeCount, 240, 39);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px Segoe UI'; ctx.fillText('KỶ LỤC', W - 25, 25);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Segoe UI'; ctx.fillText(UBG.best, W - 25, 45);
 
     if (cosmicEvent) {
       ctx.save();
-      ctx.font = '900 10px Segoe UI';
+      ctx.font = '900 11px Segoe UI';
       ctx.textAlign = 'center';
       ctx.fillStyle = cosmicEvent.color;
       ctx.fillText(cosmicEvent.label, W / 2, 68);
@@ -1113,12 +1117,12 @@
     }
 
     const ready = ship.boostEnergy >= BOOST_MIN_COST || ship.boostTimer > 0;
-    ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 142, 16);
-    ctx.strokeStyle = ready ? '#22d3ee99' : '#334155'; ctx.strokeRect(14, H - 30, 142, 16);
+    ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 160, 16);
+    ctx.strokeStyle = ready ? '#22d3ee99' : '#334155'; ctx.strokeRect(14, H - 30, 160, 16);
     ctx.fillStyle = ship.boostTimer > 0 ? '#22d3ee' : (ready ? '#0891b2' : '#334155');
-    ctx.fillRect(16, H - 28, 138 * (ship.boostEnergy / 100), 12);
+    ctx.fillRect(16, H - 28, 156 * (ship.boostEnergy / 100), 12);
     ctx.fillStyle = '#e0f2fe'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText((ready && ship.boostTimer <= 0 ? '⚡ ' : '') + 'LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 85, H - 19);
+    ctx.fillText((ready && ship.boostTimer <= 0 ? '⚡ ' : '') + 'LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 94, H - 19);
 
     const active = [];
     if (ship.boostTimer > 0) active.push('LASER BOOST');
@@ -1128,7 +1132,7 @@
     if (ship.beam > 0) active.push('BEAM ' + Math.ceil(ship.beam / 60) + 's');
     if (ship.drone > 0) active.push('DRONES ' + Math.ceil(ship.drone / 60) + 's');
     if (active.length) {
-      ctx.textAlign = 'center'; ctx.font = 'bold 9px Segoe UI'; ctx.fillStyle = '#c4b5fd';
+      ctx.textAlign = 'center'; ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = '#c4b5fd';
       ctx.fillText(active.join(' · '), W / 2, cosmicEvent ? 84 : 80);
     }
   }
