@@ -61,10 +61,10 @@
 
   let last = 0;
   let grazeCount = 0, maxCombo = 1, bossesKilled = 0, shake = 0, combo = 0, comboLeft = 0, gridScroll = 0;
-  let spawnClock = 40, asteroidClock = 55, orbClock = 380, grazeSoundCool = 0, eventClock = 640;
+  let spawnClock = 40, asteroidClock = 55, orbClock = 380, grazeSoundCool = 0, eventClock = 640, missileClock = 0;
   let warning = 0, bossLevel = 1, bossAt = 240;
   let slowMoTimer = 0, cosmicEvent = null;
-  let enemies, bullets, shots, asteroids, particles, sparks, shocks, floatTexts, pickups, stars, laserTick;
+  let enemies, bullets, shots, missiles, asteroids, particles, sparks, shocks, floatTexts, pickups, stars, laserTick;
 
   try { UBG.best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
   $('ubg-best-menu').textContent = UBG.best;
@@ -203,19 +203,85 @@
     }
   }
 
+  function spawnMissile(x, y, angleOffset = 0, dmgMult = 1) {
+    const ship = UBG.ship;
+    missiles.push({
+      x,
+      y,
+      angle: -Math.PI / 2 + angleOffset,
+      speed: 9.6,
+      damage: 2.5 * ship.spec.baseDamage * ship.mods.damageMult * dmgMult,
+      life: 160,
+      trail: []
+    });
+  }
+
   function triggerBoost() {
     const ship = UBG.ship;
     if (UBG.state !== 'PLAYING' || !ship) return;
     if (ship.boostTimer > 0 || ship.boostEnergy < BOOST_MIN_COST) return;
     ship.boostEnergy = Math.max(0, ship.boostEnergy - BOOST_MIN_COST);
-    ship.boostTimer = 30;
-    ship.invuln = Math.max(ship.invuln, 34);
     laserTick = 0;
-    shake = Math.max(shake, 7);
-    sound('boost');
     const cx = ship.x + ship.w / 2, cy = ship.y + ship.h / 2;
-    addShock(cx, cy, '#22d3ee', 76);
-    burst(cx, cy + 16, '#38bdf8', 24, 4.4);
+
+    if (ship.type === 'titan') {
+      // TITAN: Omega Nova quét đạn + phóng 8 tên lửa tầm nhiệt
+      ship.boostTimer = 26;
+      ship.invuln = Math.max(ship.invuln, 50);
+      shake = Math.max(shake, 14);
+      sound('nova');
+      addShock(cx, cy, '#fb923c', 260);
+      addShock(cx, cy, '#facc15', 165);
+      burst(cx, cy, '#fb923c', 38, 5.4);
+      addFloatText(cx, cy - 22, 'OMEGA NOVA!', '#fb923c', 1.25);
+
+      let cleared = 0;
+      bullets = bullets.filter(b => {
+        if (Math.hypot(b.x - cx, b.y - cy) < 360) {
+          cleared++;
+          hitEffect(b.x, b.y, '#facc15', false);
+          return false;
+        }
+        return true;
+      });
+      if (cleared > 0) UBG.score += cleared * 2;
+
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (Math.hypot(e.x + e.w / 2 - cx, e.y + e.h / 2 - cy) < 340) {
+          e.hp -= 10 * ship.mods.damageMult;
+          e.hitFlash = 6;
+          if (e.hp <= 0) killEnemy(i);
+        }
+      }
+      if (UBG.boss && Math.hypot(UBG.boss.x + UBG.boss.w / 2 - cx, UBG.boss.y + UBG.boss.h / 2 - cy) < 390) {
+        UBG.boss.hp -= 26 * ship.mods.damageMult;
+        UBG.boss.flash = 6;
+        if (UBG.boss.hp <= 0) bossDeath();
+      }
+      for (let m = 0; m < 8; m++) {
+        spawnMissile(cx + (m % 2 === 0 ? -16 : 16), cy, -0.7 + (m / 7) * 1.4, 1.15);
+      }
+      sound('missile');
+    } else if (ship.type === 'phantom') {
+      // PHANTOM: Ngưng đọng thời gian + gọi 2 phân thân
+      ship.boostTimer = 105;
+      ship.invuln = Math.max(ship.invuln, 110);
+      shake = Math.max(shake, 6);
+      sound('chrono');
+      addShock(cx, cy, '#c084fc', 120);
+      burst(cx, cy, '#c084fc', 28, 4.2);
+      addFloatText(cx, cy - 22, 'CHRONO PHANTOM!', '#e879f9', 1.2);
+    } else {
+      // VIPER: Twin Plasma Railgun + Ép xung tốc độ bắn
+      ship.boostTimer = 42;
+      ship.invuln = Math.max(ship.invuln, 46);
+      shake = Math.max(shake, 8);
+      sound('boost');
+      addShock(cx, cy, '#22d3ee', 86);
+      burst(cx, cy + 16, '#38bdf8', 26, 4.5);
+      addFloatText(cx, cy - 22, 'TWIN RAILGUN!', '#22d3ee', 1.2);
+    }
   }
 
   boostBtn.onclick = e => { e.stopPropagation(); triggerBoost(); };
@@ -251,7 +317,7 @@
     const spec = SHIP_SPECS[selectedShip] || SHIP_SPECS.viper;
     UBG.score = 0; UBG.best = 0; grazeCount = 0; maxCombo = 1; bossesKilled = 0;
     shake = 0; combo = 0; comboLeft = 0; gridScroll = 0;
-    spawnClock = 40; asteroidClock = 55; orbClock = 380; grazeSoundCool = 0; laserTick = 0; eventClock = 640;
+    spawnClock = 40; asteroidClock = 55; orbClock = 380; grazeSoundCool = 0; laserTick = 0; eventClock = 640; missileClock = 0;
     UBG.time = 0; warning = 0; UBG.boss = null; bossLevel = 1; bossAt = 240; UBG.bossEnragedBanner = 0; UBG.bgmStep = 0;
     slowMoTimer = 0; cosmicEvent = null;
     try { UBG.best = Number(localStorage.getItem('ubg_best') || 0) || 0; } catch (e) {}
@@ -260,10 +326,10 @@
       spec,
       x: W / 2 - 23, y: H - 110, w: 46, h: 55,
       shield: spec.startShield, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
-      invuln: 150, cool: 0, boostEnergy: 45, boostTimer: 0,
-      mods: { extraGuns: 0, fireRateMult: 1, damageMult: 1, magnetRange: 0, boostChargeMult: 1 }
+      invuln: 150, cool: 0, boostEnergy: 50, boostTimer: 0,
+      mods: { extraGuns: 0, fireRateMult: 1, damageMult: 1, magnetRange: 0, boostChargeMult: 1, missiles: 0 }
     };
-    enemies = []; bullets = []; shots = []; asteroids = [];
+    enemies = []; bullets = []; shots = []; missiles = []; asteroids = [];
     particles = []; sparks = []; shocks = []; floatTexts = []; pickups = []; UBG.trail = [];
     stars = Array.from({ length: 220 }, () => ({
       x: rand(0, W), y: rand(0, H), r: rand(0.5, 2), v: rand(0.35, 2), a: rand(0.2, 0.95), tw: rand(0.003, 0.016)
@@ -335,10 +401,10 @@
     const e = enemies[index];
     if (!e) return;
     const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
-    const heavy = e.type === 'HEAVY';
-    burst(cx, cy, e.color, heavy ? 36 : 22, heavy ? 4.5 : 3.8);
-    hitEffect(cx, cy, e.color, heavy);
-    addShock(cx, cy, e.color, heavy ? 68 : 42);
+    const heavy = e.type === 'HEAVY' || e.elite;
+    burst(cx, cy, e.elite ? '#facc15' : e.color, heavy ? 36 : 22, heavy ? 4.5 : 3.8);
+    hitEffect(cx, cy, e.elite ? '#facc15' : e.color, heavy);
+    addShock(cx, cy, e.elite ? '#facc15' : e.color, heavy ? 68 : 42);
     if (heavy) addShock(cx, cy, '#ffffff', 42);
     sound('boom');
     enemies.splice(index, 1);
@@ -348,25 +414,43 @@
     const eventMult = cosmicEvent?.type === 'METEOR' ? 1.5 : 1;
     const gained = Math.round(e.points * Math.min(combo, 8) * eventMult);
     UBG.score += gained;
-    addFloatText(cx, cy - 8, '+' + gained + (combo > 1 ? ' x' + combo : ''), combo > 1 ? '#facc15' : '#e2e8f0', heavy ? 1.2 : 1);
+    addFloatText(cx, cy - 8, (e.elite ? '★ +' : '+') + gained + (combo > 1 ? ' x' + combo : ''), e.elite ? '#facc15' : (combo > 1 ? '#facc15' : '#e2e8f0'), heavy ? 1.2 : 1);
     const ship = UBG.ship;
     if (ship) {
-      ship.boostEnergy = Math.min(100, ship.boostEnergy + (heavy ? 11 : 6) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
+      ship.boostEnergy = Math.min(100, ship.boostEnergy + (e.elite ? 28 : (heavy ? 11 : 6)) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
     }
     if (combo > 1) sound('combo');
-    if (Math.random() < e.drop) addPickup(cx, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
+    if (e.elite) {
+      addPickup(cx - 14, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
+      addPickup(cx + 14, cy, 'boost');
+    } else if (Math.random() < e.drop) {
+      addPickup(cx, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
+    }
   }
 
   function spawnEnemy() {
     const roll = Math.random();
     const type = roll < 0.48 ? 'SCOUT' : roll < 0.82 ? 'STRIKER' : 'HEAVY';
+    const isElite = UBG.score >= 100 && Math.random() < 0.2;
     const data = type === 'SCOUT'
       ? [40, 38, 2, 1.9, 5, 0.25, '#34d399']
       : type === 'STRIKER'
         ? [48, 48, 3, 1.35, 9, 0.38, '#e879f9']
         : [66, 56, 6, 0.9, 16, 0.55, '#fb923c'];
-    const [w, h, hp, vy, points, drop, color] = data;
-    enemies.push({ type, x: rand(45, W - w - 45), y: -h - 5, w, h, hp, maxHp: hp, vy: vy + Math.min(UBG.score / 1700, 0.8), phase: rand(0, 6), fire: rand(65, 120), points, drop, color, hitFlash: 0 });
+    let [w, h, hp, vy, points, drop, color] = data;
+    if (isElite) {
+      w = Math.round(w * 1.22);
+      h = Math.round(h * 1.22);
+      hp = Math.round(hp * 2.5);
+      points *= 3;
+      drop = 1;
+    }
+    enemies.push({
+      type, elite: isElite,
+      x: rand(45, W - w - 45), y: -h - 5, w, h,
+      hp, maxHp: hp, vy: vy + Math.min(UBG.score / 1700, 0.8),
+      phase: rand(0, 6), fire: rand(65, 120), points, drop, color, hitFlash: 0
+    });
   }
 
   function spawnAsteroid() {
@@ -402,8 +486,8 @@
       cosmicEvent = { type: 'METEOR', timer: 420, label: '☄ BÃO THIÊN THẠCH — THƯỞNG ĐIỂM x2', color: '#fb923c' };
       sound('warning');
     } else {
-      cosmicEvent = { type: 'ION', timer: 300, label: '⚡ BÃO NĂNG LƯỢNG ION — +25% BOOST', color: '#38bdf8' };
-      UBG.ship.boostEnergy = Math.min(100, UBG.ship.boostEnergy + 25);
+      cosmicEvent = { type: 'ION', timer: 300, label: '⚡ BÃO NĂNG LƯỢNG ION — +30% OVERDRIVE', color: '#38bdf8' };
+      UBG.ship.boostEnergy = Math.min(100, UBG.ship.boostEnergy + 30);
       addPickup(W * 0.35, -10, 'rapid');
       addPickup(W * 0.65, -10, 'shield');
       sound('pickup');
@@ -414,7 +498,8 @@
     const ship = UBG.ship;
     if (ship.cool > 0) return;
     const rapid = ship.rapid > 0, hyper = ship.speed > 0;
-    const speed = rapid ? 15.5 : 13.8;
+    const viperOverdrive = ship.type === 'viper' && ship.boostTimer > 0;
+    const speed = rapid || viperOverdrive ? 15.8 : 13.8;
     const damage = ship.spec.baseDamage * ship.mods.damageMult * (hyper ? 1.85 : 1);
     const cx = ship.x + ship.w / 2, sy = ship.y + 4;
 
@@ -436,6 +521,21 @@
         core: coreCol
       });
     });
+
+    // Phân thân Phantom cùng xả đạn
+    if (ship.type === 'phantom' && ship.boostTimer > 0) {
+      [-58, 58].forEach(cloneOff => {
+        shots.push({
+          x: cx + cloneOff,
+          y: sy + 8,
+          vx: 0,
+          vy: -speed,
+          damage: damage * 0.75,
+          color: '#e879f9',
+          core: '#fae8ff'
+        });
+      });
+    }
 
     for (let g = 1; g <= ship.mods.extraGuns; g++) {
       const off = 18 + g * 7;
@@ -467,7 +567,7 @@
       }
     }
     const baseCd = rapid ? ship.spec.baseCool * 0.62 : ship.spec.baseCool;
-    ship.cool = Math.max(4.5, baseCd * ship.mods.fireRateMult);
+    ship.cool = Math.max(3.5, baseCd * ship.mods.fireRateMult * (viperOverdrive ? 0.52 : 1));
     sound('shot');
   }
 
@@ -475,13 +575,17 @@
     const ship = UBG.ship;
     const sx = e.x + e.w / 2, sy = e.y + e.h - 2, tx = ship.x + ship.w / 2, ty = ship.y + ship.h / 2;
     const a = Math.atan2(ty - sy, tx - sx), v = 3.5 + Math.min(UBG.score / 900, 1.8);
+    if (e.elite) {
+      [-0.22, 0, 0.22].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * (v * 1.08), vy: Math.sin(a + d) * (v * 1.08), r: 5.5, color: '#facc15', core: '#fef9c3', grazed: false }));
+      return;
+    }
     if (e.type === 'SCOUT') bullets.push({ x: sx, y: sy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 4.5, color: '#34d399', core: '#d1fae5', grazed: false });
     else if (e.type === 'STRIKER') { [-0.16, 0.16].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5, color: '#e879f9', core: '#fae8ff', grazed: false })); }
     else { [-0.25, 0, 0.25].forEach(d => bullets.push({ x: sx, y: sy, vx: Math.cos(a + d) * v, vy: Math.sin(a + d) * v, r: 5.5, color: '#fb923c', core: '#ffedd5', grazed: false })); }
   }
 
   function spawnBoss() {
-    const hp = 210 + (bossLevel - 1) * 100;
+    const hp = 220 + (bossLevel - 1) * 105;
     const kind = bossLevel % 2 === 0 ? 'VORTEX' : 'FLAGSHIP';
     UBG.boss = {
       kind,
@@ -548,12 +652,14 @@
 
   function update(rawDt) {
     if (UBG.state === 'PAUSED' || UBG.state === 'UPGRADE') return;
-    const timeScale = slowMoTimer > 0 ? 0.38 : 1;
+    const ship = UBG.ship;
+    const chronoSlow = (ship?.type === 'phantom' && ship?.boostTimer > 0) ? 0.28 : 1;
+    const timeScale = (slowMoTimer > 0 ? 0.38 : 1) * chronoSlow;
     const dt = rawDt * timeScale;
+    const playerDt = rawDt * (slowMoTimer > 0 ? 0.55 : 1);
     if (slowMoTimer > 0) slowMoTimer = Math.max(0, slowMoTimer - rawDt);
 
     UBG.time += dt;
-    const ship = UBG.ship;
     const boosting = ship?.boostTimer > 0;
     const speedMult = (ship?.speed > 0 ? 1.8 : 1) * (boosting ? 2.2 : 1);
     gridScroll = (gridScroll + 0.8 * dt * speedMult) % 52;
@@ -589,22 +695,22 @@
     shocks = shocks.filter(w => w.alpha > 0.02);
 
     floatTexts.forEach(ft => {
-      ft.y += ft.vy * dt;
-      ft.vy *= Math.pow(0.95, dt);
-      ft.life -= dt;
+      ft.y += ft.vy * playerDt;
+      ft.vy *= Math.pow(0.95, playerDt);
+      ft.life -= playerDt;
     });
     floatTexts = floatTexts.filter(ft => ft.life > 0);
 
     if (UBG.state !== 'PLAYING') return;
 
-    ship.invuln = Math.max(0, ship.invuln - dt);
-    ship.rapid = Math.max(0, ship.rapid - dt);
-    ship.speed = Math.max(0, ship.speed - dt);
-    ship.beam = Math.max(0, ship.beam - dt);
-    ship.drone = Math.max(0, ship.drone - dt);
-    ship.boostTimer = Math.max(0, ship.boostTimer - dt);
-    ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.13 * dt * ship.spec.boostGainMult * ship.mods.boostChargeMult);
-    if (ship.cool > 0) ship.cool -= dt;
+    ship.invuln = Math.max(0, ship.invuln - playerDt);
+    ship.rapid = Math.max(0, ship.rapid - playerDt);
+    ship.speed = Math.max(0, ship.speed - playerDt);
+    ship.beam = Math.max(0, ship.beam - playerDt);
+    ship.drone = Math.max(0, ship.drone - playerDt);
+    ship.boostTimer = Math.max(0, ship.boostTimer - playerDt);
+    ship.boostEnergy = Math.min(100, ship.boostEnergy + 0.13 * playerDt * ship.spec.boostGainMult * ship.mods.boostChargeMult);
+    if (ship.cool > 0) ship.cool -= playerDt;
     if (comboLeft > 0) { comboLeft -= dt; if (comboLeft <= 0) combo = 0; }
 
     const tx = clamp(UBG.pointer.x - ship.w / 2, 0, W - ship.w);
@@ -614,6 +720,20 @@
     ship.y += (ty - ship.y) * smooth;
 
     fire();
+
+    // Phóng tên lửa tầm nhiệt định kỳ nếu đã nâng cấp
+    if (ship.mods.missiles > 0) {
+      missileClock -= playerDt;
+      if (missileClock <= 0 && (enemies.length > 0 || UBG.boss)) {
+        const cx = ship.x + ship.w / 2, cy = ship.y + 12;
+        for (let m = 0; m < ship.mods.missiles; m++) {
+          const spread = (m - (ship.mods.missiles - 1) / 2) * 0.35;
+          spawnMissile(cx + (m % 2 === 0 ? -18 : 18), cy, spread, 1);
+        }
+        sound('missile');
+        missileClock = 52;
+      }
+    }
 
     if (cosmicEvent) {
       cosmicEvent.timer -= dt;
@@ -657,8 +777,73 @@
       orbClock = rand(360, 500);
     }
 
-    shots.forEach(s => { s.x += s.vx * dt; s.y += s.vy * dt; });
+    shots.forEach(s => { s.x += s.vx * playerDt; s.y += s.vy * playerDt; });
     shots = shots.filter(s => s.y > -30 && s.x > -30 && s.x < W + 30);
+
+    // Cập nhật Tên lửa tầm nhiệt
+    for (let i = missiles.length - 1; i >= 0; i--) {
+      const m = missiles[i];
+      m.life -= playerDt;
+      m.trail.push({ x: m.x, y: m.y });
+      if (m.trail.length > 10) m.trail.shift();
+
+      let targetX = null, targetY = null, bestDist = Infinity;
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x + e.w / 2 - m.x, e.y + e.h / 2 - m.y);
+        if (d < bestDist) { bestDist = d; targetX = e.x + e.w / 2; targetY = e.y + e.h / 2; }
+      });
+      if (UBG.boss) {
+        const bd = Math.hypot(UBG.boss.x + UBG.boss.w / 2 - m.x, UBG.boss.y + UBG.boss.h / 2 - m.y);
+        if (bd < bestDist) { targetX = UBG.boss.x + UBG.boss.w / 2; targetY = UBG.boss.y + UBG.boss.h / 2; }
+      }
+
+      if (targetX !== null) {
+        const desired = Math.atan2(targetY - m.y, targetX - m.x);
+        let diff = desired - m.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        m.angle += clamp(diff, -0.11 * playerDt, 0.11 * playerDt);
+      }
+
+      m.x += Math.cos(m.angle) * m.speed * playerDt;
+      m.y += Math.sin(m.angle) * m.speed * playerDt;
+
+      let detonated = false;
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const e = enemies[j];
+        if (Math.hypot(e.x + e.w / 2 - m.x, e.y + e.h / 2 - m.y) < Math.max(e.w, e.h) * 0.55 + 10) {
+          detonated = true;
+          break;
+        }
+      }
+      if (!detonated && UBG.boss && m.x > UBG.boss.x && m.x < UBG.boss.x + UBG.boss.w && m.y > UBG.boss.y && m.y < UBG.boss.y + UBG.boss.h) {
+        detonated = true;
+      }
+
+      if (detonated) {
+        burst(m.x, m.y, '#fb7185', 16, 3.6);
+        addShock(m.x, m.y, '#fb7185', 56);
+        sound('hit');
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          const d = Math.hypot(e.x + e.w / 2 - m.x, e.y + e.h / 2 - m.y);
+          if (d < 68) {
+            e.hp -= d < 32 ? m.damage : m.damage * 0.55;
+            e.hitFlash = 4;
+            if (e.hp <= 0) killEnemy(j);
+          }
+        }
+        if (UBG.boss && Math.hypot(UBG.boss.x + UBG.boss.w / 2 - m.x, UBG.boss.y + UBG.boss.h / 2 - m.y) < 120) {
+          UBG.boss.hp -= m.damage;
+          UBG.boss.flash = 4;
+          if (UBG.boss.hp <= 0) bossDeath();
+        }
+        missiles.splice(i, 1);
+        continue;
+      }
+
+      if (m.life <= 0 || m.y < -40 || m.y > H + 40 || m.x < -40 || m.x > W + 40) missiles.splice(i, 1);
+    }
 
     for (let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
@@ -687,7 +872,7 @@
       if (dead) continue;
       if (Math.hypot(e.x + e.w / 2 - (ship.x + ship.w / 2), e.y + e.h / 2 - (ship.y + ship.h / 2)) < Math.min(e.w, e.h) * 0.55 + 12) {
         if (boosting) {
-          e.hp -= 4 * dt;
+          e.hp -= 4 * playerDt;
           e.hitFlash = 3;
           hitEffect(e.x + e.w / 2, e.y + e.h / 2, '#38bdf8', false);
           if (e.hp <= 0) killEnemy(i);
@@ -873,8 +1058,8 @@
       if (ship.mods.magnetRange > 0) {
         const d = Math.hypot(scx - p.x, scy - p.y);
         if (d < ship.mods.magnetRange && d > 1) {
-          p.x += ((scx - p.x) / d) * 4.2 * dt;
-          p.y += ((scy - p.y) / d) * 4.2 * dt;
+          p.x += ((scx - p.x) / d) * 4.2 * playerDt;
+          p.y += ((scy - p.y) / d) * 4.2 * playerDt;
         }
       }
       if (Math.hypot(p.x - scx, p.y - scy) < p.r + 22) {
@@ -883,10 +1068,14 @@
         if (p.type === 'speed') ship.speed = 600;
         if (p.type === 'beam') ship.beam = 330;
         if (p.type === 'drone') ship.drone = 600;
+        if (p.type === 'boost') {
+          ship.boostEnergy = Math.min(100, ship.boostEnergy + 35);
+          UBG.score += 20;
+        }
         ship.boostEnergy = Math.min(100, ship.boostEnergy + 10 * ship.mods.boostChargeMult);
-        burst(p.x, p.y, p.type === 'shield' ? '#22d3ee' : '#facc15', 22, 3);
-        addShock(p.x, p.y, '#22d3ee', 36);
-        addFloatText(p.x, p.y - 6, '+5 ' + p.type.toUpperCase(), '#67e8f9', 0.95);
+        burst(p.x, p.y, p.type === 'boost' ? '#facc15' : (p.type === 'shield' ? '#22d3ee' : '#facc15'), 22, 3);
+        addShock(p.x, p.y, p.type === 'boost' ? '#facc15' : '#22d3ee', 36);
+        addFloatText(p.x, p.y - 6, p.type === 'boost' ? '+35% BOOST' : ('+5 ' + p.type.toUpperCase()), p.type === 'boost' ? '#facc15' : '#67e8f9', 0.95);
         sound('pickup');
         UBG.score += 5;
         pickups.splice(i, 1);
@@ -895,37 +1084,38 @@
       if (p.y > H + 20) pickups.splice(i, 1);
     }
 
-    if (boosting) {
-      laserTick += dt;
+    if (boosting && (ship.type === 'viper' || ship.type === 'phantom')) {
+      laserTick += playerDt;
       if (laserTick >= 7) { laserTick = 0; sound('laser'); }
       const cx = ship.x + ship.w / 2;
-      const beamOffsets = [-19, 19];
-      const halfW = 7 + Math.sin(UBG.time * 0.35) * 2;
+      const beamOffsets = ship.type === 'phantom' ? [-58, 0, 58] : [-19, 19];
+      const halfW = ship.type === 'phantom' ? 5.5 : (7.5 + Math.sin(UBG.time * 0.35) * 2);
+      const beamDmg = ship.type === 'phantom' ? 0.55 : 0.82;
 
       beamOffsets.forEach(off => {
         const lx = cx + off;
         for (let i = enemies.length - 1; i >= 0; i--) {
           const e = enemies[i];
           if (Math.abs(e.x + e.w / 2 - lx) < halfW + e.w * 0.42 && e.y < ship.y) {
-            e.hp -= 0.72 * dt;
+            e.hp -= beamDmg * playerDt;
             e.hitFlash = 2;
-            if (Math.random() < 0.35 * dt) hitEffect(lx, e.y + e.h / 2, '#22d3ee', false);
+            if (Math.random() < 0.35 * playerDt) hitEffect(lx, e.y + e.h / 2, ship.spec.primary, false);
             if (e.hp <= 0) killEnemy(i);
           }
         }
         if (UBG.boss && Math.abs(UBG.boss.x + UBG.boss.w / 2 - lx) < halfW + UBG.boss.w * 0.42 && UBG.boss.y < ship.y) {
-          UBG.boss.hp -= 0.85 * dt;
+          UBG.boss.hp -= beamDmg * 1.15 * playerDt;
           UBG.boss.flash = 2;
-          if (Math.random() < 0.45 * dt) hitEffect(lx, UBG.boss.y + UBG.boss.h, '#38bdf8', false);
+          if (Math.random() < 0.45 * playerDt) hitEffect(lx, UBG.boss.y + UBG.boss.h, ship.spec.primary, false);
           if (UBG.boss.hp <= 0) bossDeath();
         }
         for (let i = asteroids.length - 1; i >= 0; i--) {
           const a = asteroids[i];
           if (Math.abs(a.x - lx) < halfW + a.r * 0.85 && a.y < ship.y) {
-            a.hp -= 0.75 * dt;
+            a.hp -= 0.75 * playerDt;
             if (a.hp <= 0) {
-              burst(a.x, a.y, '#38bdf8', 18, 3.2);
-              addShock(a.x, a.y, '#38bdf8', a.r * 2);
+              burst(a.x, a.y, ship.spec.primary, 18, 3.2);
+              addShock(a.x, a.y, ship.spec.primary, a.r * 2);
               UBG.score += 2;
               asteroids.splice(i, 1);
             }
@@ -939,13 +1129,13 @@
       const cx = ship.x + ship.w / 2, bw = 24 + Math.sin(UBG.time * 0.12) * 5;
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
-        if (Math.abs(e.x + e.w / 2 - cx) < bw + e.w * 0.35) { e.hp -= 0.45 * dt; e.hitFlash = 2; if (e.hp <= 0) killEnemy(i); }
+        if (Math.abs(e.x + e.w / 2 - cx) < bw + e.w * 0.35) { e.hp -= 0.45 * playerDt; e.hitFlash = 2; if (e.hp <= 0) killEnemy(i); }
       }
-      if (UBG.boss && Math.abs(UBG.boss.x + UBG.boss.w / 2 - cx) < bw + UBG.boss.w * 0.35) { UBG.boss.hp -= 0.5 * dt; UBG.boss.flash = 2; if (UBG.boss.hp <= 0) bossDeath(); }
+      if (UBG.boss && Math.abs(UBG.boss.x + UBG.boss.w / 2 - cx) < bw + UBG.boss.w * 0.35) { UBG.boss.hp -= 0.5 * playerDt; UBG.boss.flash = 2; if (UBG.boss.hp <= 0) bossDeath(); }
       bullets = bullets.filter(b => Math.abs(b.x - cx) > bw);
     }
 
-    if (ship.drone > 0) ship.droneAngle += 0.06 * dt;
+    if (ship.drone > 0) ship.droneAngle += 0.06 * playerDt;
   }
 
   function draw() {
@@ -954,7 +1144,8 @@
     ctx.fillStyle = '#030712';
     ctx.fillRect(-30, -30, W + 60, H + 60);
 
-    ctx.strokeStyle = slowMoTimer > 0 ? '#22d3ee33' : '#0f294226';
+    const isChrono = UBG.ship?.type === 'phantom' && UBG.ship?.boostTimer > 0;
+    ctx.strokeStyle = isChrono ? '#c084fc33' : (slowMoTimer > 0 ? '#22d3ee33' : '#0f294226');
     ctx.lineWidth = 1;
     for (let gx = 0; gx <= W; gx += 56) {
       ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
@@ -964,7 +1155,7 @@
     }
 
     let g = ctx.createRadialGradient(W * 0.22, H * 0.3, 5, W * 0.22, H * 0.3, 340);
-    g.addColorStop(0, '#312e8150'); g.addColorStop(1, '#03071200');
+    g.addColorStop(0, isChrono ? '#581c8755' : '#312e8150'); g.addColorStop(1, '#03071200');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
     g = ctx.createRadialGradient(W * 0.8, H * 0.68, 5, W * 0.8, H * 0.68, 360);
@@ -1059,16 +1250,17 @@
       });
 
       pickups.forEach(p => {
-        const colors = { rapid: '#22d3ee', shield: '#60a5fa', speed: '#facc15', beam: '#c084fc', drone: '#4ade80' };
+        const colors = { rapid: '#22d3ee', shield: '#60a5fa', speed: '#facc15', beam: '#c084fc', drone: '#4ade80', boost: '#facc15' };
         ctx.save(); ctx.translate(p.x, p.y + Math.sin(p.phase) * 3); ctx.rotate(Math.PI / 4);
         ctx.fillStyle = colors[p.type]; ctx.shadowBlur = 16; ctx.shadowColor = colors[p.type];
         ctx.fillRect(-8, -8, 16, 16); ctx.restore();
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-        ctx.fillText(p.type.toUpperCase(), p.x, p.y + 23);
+        ctx.fillStyle = p.type === 'boost' ? '#fde047' : '#fff'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText(p.type === 'boost' ? 'CORE +35%' : p.type.toUpperCase(), p.x, p.y + 23);
       });
 
       enemies.forEach(UBG.drawEnemy);
       bullets.forEach(UBG.drawEnemyBullet);
+      missiles.forEach(UBG.drawMissile);
       shots.forEach(UBG.drawPlayerShot);
 
       UBG.drawBoostLasers();
@@ -1117,16 +1309,18 @@
     }
 
     const ready = ship.boostEnergy >= BOOST_MIN_COST || ship.boostTimer > 0;
-    ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 160, 16);
-    ctx.strokeStyle = ready ? '#22d3ee99' : '#334155'; ctx.strokeRect(14, H - 30, 160, 16);
-    ctx.fillStyle = ship.boostTimer > 0 ? '#22d3ee' : (ready ? '#0891b2' : '#334155');
-    ctx.fillRect(16, H - 28, 156 * (ship.boostEnergy / 100), 12);
+    const ultLabel = ship.type === 'titan' ? 'OMEGA NOVA ' : (ship.type === 'phantom' ? 'CHRONO ' : 'RAILGUN ');
+    ctx.fillStyle = '#071426cc'; ctx.fillRect(14, H - 30, 175, 16);
+    ctx.strokeStyle = ready ? ship.spec.primary : '#334155'; ctx.strokeRect(14, H - 30, 175, 16);
+    ctx.fillStyle = ship.boostTimer > 0 ? ship.spec.primary : (ready ? '#0891b2' : '#334155');
+    ctx.fillRect(16, H - 28, 171 * (ship.boostEnergy / 100), 12);
     ctx.fillStyle = '#e0f2fe'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
-    ctx.fillText((ready && ship.boostTimer <= 0 ? '⚡ ' : '') + 'LASER BOOST ' + Math.floor(ship.boostEnergy) + '%', 94, H - 19);
+    ctx.fillText((ready && ship.boostTimer <= 0 ? '⚡ ' : '') + ultLabel + Math.floor(ship.boostEnergy) + '%', 101, H - 19);
 
     const active = [];
-    if (ship.boostTimer > 0) active.push('LASER BOOST');
+    if (ship.boostTimer > 0) active.push(ultLabel.trim() + ' ACTIVE');
     if (ship.shield) active.push('SHIELD');
+    if (ship.mods.missiles > 0) active.push('MISSILES x' + ship.mods.missiles);
     if (ship.rapid > 0) active.push('RAPID ' + Math.ceil(ship.rapid / 60) + 's');
     if (ship.speed > 0) active.push('OVERDRIVE ' + Math.ceil(ship.speed / 60) + 's');
     if (ship.beam > 0) active.push('BEAM ' + Math.ceil(ship.beam / 60) + 's');
