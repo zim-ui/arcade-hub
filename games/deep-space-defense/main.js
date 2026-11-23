@@ -216,6 +216,38 @@
     });
   }
 
+  function destroyTurret(b, t) {
+    if (!b || !t || t.destroyed) return;
+    t.hp = 0;
+    t.destroyed = true;
+    const tx = b.x + b.w / 2 + t.dx;
+    const ty = b.y + b.h / 2 + t.dy;
+    burst(tx, ty, '#f59e0b', 42, 4.8);
+    burst(tx, ty, '#ef4444', 28, 3.8);
+    hitEffect(tx, ty, '#facc15', true);
+    addShock(tx, ty, '#f59e0b', 82);
+    addShock(tx, ty, '#ffffff', 46);
+    sound('turretBoom');
+    shake = Math.max(shake, 12);
+    UBG.score += 50;
+
+    const remaining = (b.turrets || []).filter(item => item.hp > 0).length;
+    if (remaining === 0) {
+      addFloatText(tx, ty - 14, '+50 PHÁ HỦY! CORE EXPOSED!', '#facc15', 1.25);
+      addPickup(tx, ty, 'boost');
+    } else {
+      addFloatText(tx, ty - 14, '+50 PHÁO ĐÀI CÁNH HẠ!', '#fb923c', 1.15);
+      addPickup(tx, ty, ['rapid', 'shield', 'beam', 'drone'][Math.floor(Math.random() * 4)]);
+    }
+  }
+
+  function getBossDamageMult(b) {
+    if (b.kind === 'DREADNOUGHT' && (b.turrets || []).every(t => t.hp <= 0)) {
+      return 1.25;
+    }
+    return 1;
+  }
+
   function triggerBoost() {
     const ship = UBG.ship;
     if (UBG.state !== 'PLAYING' || !ship) return;
@@ -225,7 +257,6 @@
     const cx = ship.x + ship.w / 2, cy = ship.y + ship.h / 2;
 
     if (ship.type === 'titan') {
-      // TITAN: Omega Nova quét đạn + phóng 8 tên lửa tầm nhiệt
       ship.boostTimer = 26;
       ship.invuln = Math.max(ship.invuln, 50);
       shake = Math.max(shake, 14);
@@ -254,17 +285,29 @@
           if (e.hp <= 0) killEnemy(i);
         }
       }
-      if (UBG.boss && Math.hypot(UBG.boss.x + UBG.boss.w / 2 - cx, UBG.boss.y + UBG.boss.h / 2 - cy) < 390) {
-        UBG.boss.hp -= 26 * ship.mods.damageMult;
-        UBG.boss.flash = 6;
-        if (UBG.boss.hp <= 0) bossDeath();
+      if (UBG.boss) {
+        const b = UBG.boss;
+        const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+        if (b.turrets) {
+          b.turrets.forEach(t => {
+            if (t.hp > 0 && Math.hypot(bcx + t.dx - cx, bcy + t.dy - cy) < 400) {
+              t.hp -= 18 * ship.mods.damageMult;
+              t.flash = 6;
+              if (t.hp <= 0) destroyTurret(b, t);
+            }
+          });
+        }
+        if (UBG.boss && Math.hypot(bcx - cx, bcy - cy) < 390) {
+          b.hp -= 26 * ship.mods.damageMult * getBossDamageMult(b);
+          b.flash = 6;
+          if (b.hp <= 0) bossDeath();
+        }
       }
       for (let m = 0; m < 8; m++) {
         spawnMissile(cx + (m % 2 === 0 ? -16 : 16), cy, -0.7 + (m / 7) * 1.4, 1.15);
       }
       sound('missile');
     } else if (ship.type === 'phantom') {
-      // PHANTOM: Ngưng đọng thời gian + gọi 2 phân thân
       ship.boostTimer = 105;
       ship.invuln = Math.max(ship.invuln, 110);
       shake = Math.max(shake, 6);
@@ -273,7 +316,6 @@
       burst(cx, cy, '#c084fc', 28, 4.2);
       addFloatText(cx, cy - 22, 'CHRONO PHANTOM!', '#e879f9', 1.2);
     } else {
-      // VIPER: Twin Plasma Railgun + Ép xung tốc độ bắn
       ship.boostTimer = 42;
       ship.invuln = Math.max(ship.invuln, 46);
       shake = Math.max(shake, 8);
@@ -522,7 +564,6 @@
       });
     });
 
-    // Phân thân Phantom cùng xả đạn
     if (ship.type === 'phantom' && ship.boostTimer > 0) {
       [-58, 58].forEach(cloneOff => {
         shots.push({
@@ -586,25 +627,36 @@
 
   function spawnBoss() {
     const hp = 220 + (bossLevel - 1) * 105;
-    const kind = bossLevel % 2 === 0 ? 'VORTEX' : 'FLAGSHIP';
+    const mod = bossLevel % 3;
+    const kind = mod === 0 ? 'DREADNOUGHT' : (mod === 2 ? 'VORTEX' : 'FLAGSHIP');
+    const isDread = kind === 'DREADNOUGHT';
+    const w = isDread ? 340 : 210;
+    const h = isDread ? 155 : 145;
+    const turretHp = Math.round(hp * 0.28);
+
     UBG.boss = {
       kind,
-      x: W / 2 - 105,
-      y: -165,
-      w: 210,
-      h: 145,
+      x: W / 2 - w / 2,
+      y: -h - 20,
+      w,
+      h,
       target: 85,
-      vx: (kind === 'VORTEX' ? 2.6 : 2.2) + bossLevel * 0.2,
+      vx: (isDread ? 1.65 : (kind === 'VORTEX' ? 2.6 : 2.2)) + bossLevel * 0.16,
       hp,
       maxHp: hp,
-      fire: 70,
+      fire: 68,
+      volleyCount: 0,
       spiralAngle: 0,
       telegraphTimer: 0,
       sweepX: W / 2,
       angle: 0,
       flash: 0,
       level: bossLevel,
-      wasEnraged: false
+      wasEnraged: false,
+      turrets: isDread ? [
+        { dx: -125, dy: 12, w: 54, h: 48, hp: turretHp, maxHp: turretHp, flash: 0, fire: 48, destroyed: false },
+        { dx: 125, dy: 12, w: 54, h: 48, hp: turretHp, maxHp: turretHp, flash: 0, fire: 76, destroyed: false }
+      ] : null
     };
     sound('boss');
     updateBgmLoop();
@@ -614,21 +666,34 @@
     const b = UBG.boss;
     if (!b) return;
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-    const mainCol = b.kind === 'VORTEX' ? '#c084fc' : '#facc15';
-    burst(cx, cy, mainCol, 95, 6.2);
-    burst(cx, cy, '#22d3ee', 65, 5.2);
+    const isDread = b.kind === 'DREADNOUGHT';
+    const mainCol = isDread ? '#ef4444' : (b.kind === 'VORTEX' ? '#c084fc' : '#facc15');
+    const bonusPts = isDread ? 220 : 140;
+
+    if (b.turrets) {
+      b.turrets.forEach(t => {
+        if (t.hp > 0) {
+          burst(cx + t.dx, cy + t.dy, '#f59e0b', 28, 4.5);
+          addShock(cx + t.dx, cy + t.dy, '#f59e0b', 68);
+        }
+      });
+    }
+
+    burst(cx, cy, mainCol, isDread ? 130 : 95, isDread ? 7.2 : 6.2);
+    burst(cx, cy, '#22d3ee', 75, 5.4);
     hitEffect(cx, cy, mainCol, true);
-    addShock(cx, cy, mainCol, 136);
-    addShock(cx, cy, '#22d3ee', 98);
-    addFloatText(cx, cy - 16, '+140 ' + b.kind + ' DOWN!', '#facc15', 1.35);
-    addPickup(cx - 32, cy, 'rapid');
-    addPickup(cx + 32, cy, 'beam');
-    UBG.score += 140;
+    addShock(cx, cy, mainCol, isDread ? 175 : 136);
+    addShock(cx, cy, '#22d3ee', 110);
+    addFloatText(cx, cy - 16, `+${bonusPts} ${b.kind} DOWN!`, '#facc15', 1.38);
+    addPickup(cx - 38, cy, 'rapid');
+    addPickup(cx + 38, cy, 'beam');
+    if (isDread) addPickup(cx, cy + 12, 'boost');
+    UBG.score += bonusPts;
     bossesKilled++;
     UBG.boss = null;
     bossLevel++;
-    bossAt = UBG.score + 340;
-    shake = 25;
+    bossAt = UBG.score + 300;
+    shake = isDread ? 30 : 25;
     sound('boom');
     openUpgradeDraft();
   }
@@ -721,7 +786,6 @@
 
     fire();
 
-    // Phóng tên lửa tầm nhiệt định kỳ nếu đã nâng cấp
     if (ship.mods.missiles > 0) {
       missileClock -= playerDt;
       if (missileClock <= 0 && (enemies.length > 0 || UBG.boss)) {
@@ -780,7 +844,7 @@
     shots.forEach(s => { s.x += s.vx * playerDt; s.y += s.vy * playerDt; });
     shots = shots.filter(s => s.y > -30 && s.x > -30 && s.x < W + 30);
 
-    // Cập nhật Tên lửa tầm nhiệt
+    // Cập nhật Tên lửa tầm nhiệt (tự khóa mục tiêu gần nhất kể cả pháo đài cánh Boss)
     for (let i = missiles.length - 1; i >= 0; i--) {
       const m = missiles[i];
       m.life -= playerDt;
@@ -793,8 +857,17 @@
         if (d < bestDist) { bestDist = d; targetX = e.x + e.w / 2; targetY = e.y + e.h / 2; }
       });
       if (UBG.boss) {
-        const bd = Math.hypot(UBG.boss.x + UBG.boss.w / 2 - m.x, UBG.boss.y + UBG.boss.h / 2 - m.y);
-        if (bd < bestDist) { targetX = UBG.boss.x + UBG.boss.w / 2; targetY = UBG.boss.y + UBG.boss.h / 2; }
+        const bcx = UBG.boss.x + UBG.boss.w / 2, bcy = UBG.boss.y + UBG.boss.h / 2;
+        if (UBG.boss.turrets) {
+          UBG.boss.turrets.forEach(t => {
+            if (t.hp > 0) {
+              const td = Math.hypot(bcx + t.dx - m.x, bcy + t.dy - m.y);
+              if (td < bestDist) { bestDist = td; targetX = bcx + t.dx; targetY = bcy + t.dy; }
+            }
+          });
+        }
+        const bd = Math.hypot(bcx - m.x, bcy - m.y);
+        if (bd < bestDist) { targetX = bcx; targetY = bcy; }
       }
 
       if (targetX !== null) {
@@ -833,10 +906,23 @@
             if (e.hp <= 0) killEnemy(j);
           }
         }
-        if (UBG.boss && Math.hypot(UBG.boss.x + UBG.boss.w / 2 - m.x, UBG.boss.y + UBG.boss.h / 2 - m.y) < 120) {
-          UBG.boss.hp -= m.damage;
-          UBG.boss.flash = 4;
-          if (UBG.boss.hp <= 0) bossDeath();
+        if (UBG.boss) {
+          const b = UBG.boss;
+          const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+          if (b.turrets) {
+            b.turrets.forEach(t => {
+              if (t.hp > 0 && Math.hypot(bcx + t.dx - m.x, bcy + t.dy - m.y) < 62) {
+                t.hp -= m.damage;
+                t.flash = 4;
+                if (t.hp <= 0) destroyTurret(b, t);
+              }
+            });
+          }
+          if (UBG.boss && Math.hypot(bcx - m.x, bcy - m.y) < (b.kind === 'DREADNOUGHT' ? 145 : 120)) {
+            b.hp -= m.damage * getBossDamageMult(b);
+            b.flash = 4;
+            if (b.hp <= 0) bossDeath();
+          }
         }
         missiles.splice(i, 1);
         continue;
@@ -888,7 +974,7 @@
     if (UBG.boss) {
       const b = UBG.boss;
       if (b.y < b.target) b.y += 1.6 * dt;
-      else { b.x += b.vx * dt; if (b.x < 16 || b.x + b.w > W - 16) b.vx *= -1; }
+      else { b.x += b.vx * dt; if (b.x < 22 || b.x + b.w > W - 22) b.vx *= -1; }
       b.angle += 0.035 * dt;
       b.spiralAngle += (b.hp < b.maxHp * 0.48 ? 0.24 : 0.16) * dt;
       b.fire -= dt;
@@ -898,8 +984,35 @@
       if (enragedNow && !b.wasEnraged) {
         b.wasEnraged = true;
         UBG.bossEnragedBanner = 95;
-        addShock(b.x + b.w / 2, b.y + b.h / 2, '#fb376b', 115);
-        shake = Math.max(shake, 10);
+        addShock(b.x + b.w / 2, b.y + b.h / 2, '#fb376b', 125);
+        shake = Math.max(shake, 11);
+      }
+
+      // Cập nhật & khai hỏa 2 Pháo Đài Cánh của Dreadnought
+      if (b.turrets) {
+        const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+        b.turrets.forEach(t => {
+          t.flash = Math.max(0, t.flash - dt);
+          if (t.hp > 0 && b.y >= b.target) {
+            t.fire -= dt;
+            if (t.fire <= 0) {
+              const tx = bcx + t.dx, ty = bcy + t.dy + 12;
+              const aim = Math.atan2((ship.y + ship.h / 2) - ty, (ship.x + ship.w / 2) - tx);
+              const spd = enragedNow ? 4.6 : 4.1;
+              if (!enragedNow) {
+                [-0.1, 0.1].forEach(off => {
+                  bullets.push({ x: tx, y: ty, vx: Math.cos(aim + off) * spd, vy: Math.sin(aim + off) * spd, r: 5, color: '#f59e0b', core: '#fef08a', grazed: false });
+                });
+                t.fire = 64;
+              } else {
+                [-0.2, 0, 0.2].forEach(off => {
+                  bullets.push({ x: tx, y: ty, vx: Math.cos(aim + off) * spd, vy: Math.sin(aim + off) * spd, r: 5.5, color: '#fb923c', core: '#fef08a', grazed: false });
+                });
+                t.fire = 44;
+              }
+            }
+          }
+        });
       }
 
       if (b.kind === 'VORTEX' && b.telegraphTimer > 0) {
@@ -927,7 +1040,41 @@
 
       if (b.fire <= 0 && b.y >= b.target) {
         const cx = b.x + b.w / 2, cy = b.y + b.h - 8;
-        if (b.kind === 'VORTEX') {
+        if (b.kind === 'DREADNOUGHT') {
+          b.volleyCount = (b.volleyCount || 0) + 1;
+          if (b.volleyCount % 2 === 1) {
+            // Quạt đạn pháo hạng nặng từ pháo đài trung tâm
+            const spreadCount = enragedNow ? 5 : 4;
+            for (let k = -spreadCount; k <= spreadCount; k++) {
+              const a = Math.PI / 2 + k * 0.17;
+              bullets.push({
+                x: cx,
+                y: cy - 12,
+                vx: Math.cos(a) * 4.1,
+                vy: Math.sin(a) * 4.1,
+                r: 6.5,
+                color: '#ef4444',
+                core: '#fee2e2',
+                grazed: false
+              });
+            }
+          } else {
+            // Loạt đạn đôi xuyên tâm ép góc
+            [-36, 0, 36].forEach(off => {
+              bullets.push({
+                x: cx + off,
+                y: cy - 10,
+                vx: off * 0.015,
+                vy: enragedNow ? 5.2 : 4.5,
+                r: 6,
+                color: '#fb7185',
+                core: '#ffe4e6',
+                grazed: false
+              });
+            });
+          }
+          b.fire = enragedNow ? 36 : 56;
+        } else if (b.kind === 'VORTEX') {
           const arms = enragedNow ? 8 : 6;
           for (let k = 0; k < arms; k++) {
             const a = b.spiralAngle + (k * Math.PI * 2) / arms;
@@ -969,18 +1116,46 @@
         }
       }
 
+      // Kiểm tra va chạm đạn người chơi với 2 Pháo Đài Cánh trước, sau đó mới đến thân chính
       for (let j = shots.length - 1; j >= 0; j--) {
         const s = shots[j];
-        if (s.x > b.x + 8 && s.x < b.x + b.w - 8 && s.y > b.y + 5 && s.y < b.y + b.h - 5) {
-          b.hp -= s.damage;
+        let hitTurret = false;
+        if (b.turrets) {
+          const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+          for (const t of b.turrets) {
+            if (t.hp > 0) {
+              const tx = bcx + t.dx, ty = bcy + t.dy;
+              if (Math.abs(s.x - tx) < t.w / 2 + 5 && Math.abs(s.y - ty) < t.h / 2 + 5) {
+                t.hp -= s.damage;
+                t.flash = 4;
+                shots.splice(j, 1);
+                hitEffect(s.x, s.y, '#f59e0b', false);
+                if (t.hp <= 0) destroyTurret(b, t);
+                else sound('hit');
+                hitTurret = true;
+                break;
+              }
+            }
+          }
+        }
+        if (hitTurret) continue;
+
+        const padX = b.kind === 'DREADNOUGHT' ? 76 : 8;
+        if (s.x > b.x + padX && s.x < b.x + b.w - padX && s.y > b.y + 5 && s.y < b.y + b.h - 5) {
+          b.hp -= s.damage * getBossDamageMult(b);
           b.flash = 4;
           shots.splice(j, 1);
-          hitEffect(s.x, s.y, b.kind === 'VORTEX' ? '#c084fc' : '#38bdf8', true);
+          const col = b.kind === 'DREADNOUGHT' ? '#ef4444' : (b.kind === 'VORTEX' ? '#c084fc' : '#38bdf8');
+          hitEffect(s.x, s.y, col, true);
           if (b.hp <= 0) { bossDeath(); break; }
         }
       }
-      if (UBG.boss && !boosting && Math.hypot(b.x + b.w / 2 - (ship.x + ship.w / 2), b.y + b.h / 2 - (ship.y + ship.h / 2)) < 85) {
-        hitPlayer(ship.x + ship.w / 2, ship.y + ship.h / 2);
+
+      if (UBG.boss && !boosting) {
+        const hitHalfW = b.kind === 'DREADNOUGHT' ? 148 : 85;
+        if (Math.abs((b.x + b.w / 2) - (ship.x + ship.w / 2)) < hitHalfW && Math.abs((b.y + b.h / 2) - (ship.y + ship.h / 2)) < 75) {
+          hitPlayer(ship.x + ship.w / 2, ship.y + ship.h / 2);
+        }
       }
     }
 
@@ -1103,11 +1278,26 @@
             if (e.hp <= 0) killEnemy(i);
           }
         }
-        if (UBG.boss && Math.abs(UBG.boss.x + UBG.boss.w / 2 - lx) < halfW + UBG.boss.w * 0.42 && UBG.boss.y < ship.y) {
-          UBG.boss.hp -= beamDmg * 1.15 * playerDt;
-          UBG.boss.flash = 2;
-          if (Math.random() < 0.45 * playerDt) hitEffect(lx, UBG.boss.y + UBG.boss.h, ship.spec.primary, false);
-          if (UBG.boss.hp <= 0) bossDeath();
+        if (UBG.boss && UBG.boss.y < ship.y) {
+          const b = UBG.boss;
+          const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+          if (b.turrets) {
+            b.turrets.forEach(t => {
+              if (t.hp > 0 && Math.abs((bcx + t.dx) - lx) < halfW + t.w * 0.5) {
+                t.hp -= beamDmg * 1.2 * playerDt;
+                t.flash = 2;
+                if (Math.random() < 0.45 * playerDt) hitEffect(lx, bcy + t.dy, '#f59e0b', false);
+                if (t.hp <= 0) destroyTurret(b, t);
+              }
+            });
+          }
+          const coreHalfW = b.kind === 'DREADNOUGHT' ? 76 : b.w * 0.42;
+          if (UBG.boss && Math.abs(bcx - lx) < halfW + coreHalfW) {
+            b.hp -= beamDmg * 1.15 * getBossDamageMult(b) * playerDt;
+            b.flash = 2;
+            if (Math.random() < 0.45 * playerDt) hitEffect(lx, b.y + b.h, ship.spec.primary, false);
+            if (b.hp <= 0) bossDeath();
+          }
         }
         for (let i = asteroids.length - 1; i >= 0; i--) {
           const a = asteroids[i];
@@ -1131,7 +1321,25 @@
         const e = enemies[i];
         if (Math.abs(e.x + e.w / 2 - cx) < bw + e.w * 0.35) { e.hp -= 0.45 * playerDt; e.hitFlash = 2; if (e.hp <= 0) killEnemy(i); }
       }
-      if (UBG.boss && Math.abs(UBG.boss.x + UBG.boss.w / 2 - cx) < bw + UBG.boss.w * 0.35) { UBG.boss.hp -= 0.5 * playerDt; UBG.boss.flash = 2; if (UBG.boss.hp <= 0) bossDeath(); }
+      if (UBG.boss) {
+        const b = UBG.boss;
+        const bcx = b.x + b.w / 2;
+        if (b.turrets) {
+          b.turrets.forEach(t => {
+            if (t.hp > 0 && Math.abs((bcx + t.dx) - cx) < bw + t.w * 0.45) {
+              t.hp -= 0.55 * playerDt;
+              t.flash = 2;
+              if (t.hp <= 0) destroyTurret(b, t);
+            }
+          });
+        }
+        const coreHalfW = b.kind === 'DREADNOUGHT' ? 76 : b.w * 0.35;
+        if (UBG.boss && Math.abs(bcx - cx) < bw + coreHalfW) {
+          b.hp -= 0.5 * getBossDamageMult(b) * playerDt;
+          b.flash = 2;
+          if (b.hp <= 0) bossDeath();
+        }
+      }
       bullets = bullets.filter(b => Math.abs(b.x - cx) > bw);
     }
 
