@@ -63,6 +63,7 @@
         shot: [760, 170, 0.07, 'sawtooth', 0.038],
         hit: [240, 110, 0.09, 'triangle', 0.055],
         boom: [130, 28, 0.34, 'square', 0.115],
+        turretBoom: [165, 24, 0.44, 'sawtooth', 0.125],
         pickup: [480, 1050, 0.2, 'sine', 0.1],
         warning: [170, 340, 0.4, 'sawtooth', 0.08],
         boss: [100, 55, 0.5, 'sawtooth', 0.09],
