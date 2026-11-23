@@ -72,7 +72,10 @@
         graze: [1180, 1560, 0.05, 'sine', 0.04],
         telegraph: [320, 640, 0.18, 'sawtooth', 0.06],
         upgrade: [420, 1260, 0.26, 'triangle', 0.09],
-        clutch: [620, 140, 0.38, 'sine', 0.09]
+        clutch: [620, 140, 0.38, 'sine', 0.09],
+        missile: [340, 880, 0.16, 'sawtooth', 0.05],
+        chrono: [520, 68, 0.48, 'sine', 0.11],
+        nova: [185, 30, 0.5, 'square', 0.12]
       };
       const c = cfg[type] || cfg.hit;
       o.type = c[3];
