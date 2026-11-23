@@ -93,7 +93,7 @@
     } else if (!paused && UBG.state === 'PAUSED') {
       UBG.state = 'PLAYING';
       pauseOverlay.style.display = 'none';
-      canvas.style.cursor = 'none';
+      canvas.style.cursor = 'crosshair';
       last = performance.now();
       updateBgmLoop();
     }
@@ -165,7 +165,7 @@
         addFloatText(UBG.ship.x + UBG.ship.w / 2, UBG.ship.y - 12, item.title.split(' (')[0], item.color, 1.15);
         upgradeOverlay.style.display = 'none';
         UBG.state = 'PLAYING';
-        canvas.style.cursor = 'none';
+        canvas.style.cursor = 'crosshair';
         last = performance.now();
         updateBgmLoop();
       };
@@ -280,7 +280,7 @@
     warningEl.style.display = 'none';
     pauseBtn.style.display = 'block';
     boostBtn.style.display = 'block';
-    canvas.style.cursor = 'none';
+    canvas.style.cursor = 'crosshair';
     last = performance.now();
     updateBgmLoop();
   }
