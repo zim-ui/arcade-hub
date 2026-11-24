@@ -230,7 +230,10 @@
     sound('turretBoom');
     shake = Math.max(shake, 12);
     UBG.score += 50;
-    if (UBG.prog) UBG.prog.addCredits(35);
+    if (UBG.prog) {
+      const crEarned = UBG.prog.addCredits(35);
+      addFloatText(tx, ty + 10, `+${crEarned} CR`, '#38bdf8', 0.95);
+    }
 
     const remaining = (b.turrets || []).filter(item => item.hp > 0).length;
     if (remaining === 0) {
@@ -471,11 +474,16 @@
     combo++;
     if (combo > maxCombo) maxCombo = combo;
     comboLeft = 210;
-    if (UBG.prog) UBG.prog.onEnemyKill(false, combo, e.elite ? 18 : (heavy ? 10 : 6));
     const eventMult = cosmicEvent?.type === 'METEOR' ? 1.5 : 1;
     const gained = Math.round(e.points * Math.min(combo, 8) * eventMult);
     UBG.score += gained;
     addFloatText(cx, cy - 8, (e.elite ? '★ +' : '+') + gained + (combo > 1 ? ' x' + combo : ''), e.elite ? '#facc15' : (combo > 1 ? '#facc15' : '#e2e8f0'), heavy ? 1.2 : 1);
+    if (UBG.prog) {
+      const baseCr = e.elite ? 18 : (heavy ? 10 : 6);
+      UBG.prog.onEnemyKill(false, combo, baseCr);
+      const crEarned = Math.max(1, Math.round(baseCr * UBG.prog.getStats().creditMult));
+      addFloatText(cx, cy + 10, `+${crEarned} CR`, '#38bdf8', 0.85);
+    }
     const ship = UBG.ship;
     if (ship) {
       ship.boostEnergy = Math.min(100, ship.boostEnergy + (e.elite ? 28 : (heavy ? 11 : 6)) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
@@ -712,7 +720,12 @@
     if (isDread) addPickup(cx, cy + 12, 'boost');
     UBG.score += bonusPts;
     bossesKilled++;
-    if (UBG.prog) UBG.prog.onEnemyKill(true, combo, isDread ? 200 : 120);
+    if (UBG.prog) {
+      const bossCr = isDread ? 200 : 120;
+      UBG.prog.onEnemyKill(true, combo, bossCr);
+      const crEarned = Math.max(1, Math.round(bossCr * UBG.prog.getStats().creditMult));
+      addFloatText(cx, cy + 12, `+${crEarned} CR`, '#38bdf8', 1.15);
+    }
     UBG.boss = null;
     bossLevel++;
     bossAt = UBG.score + 300;
