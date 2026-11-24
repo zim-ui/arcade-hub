@@ -461,7 +461,7 @@
     if (ship) {
       ship.boostEnergy = Math.min(100, ship.boostEnergy + (e.elite ? 28 : (heavy ? 11 : 6)) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
     }
-    if (combo > 1) sound('combo');
+    if (combo > 1) UBG.playComboKill(combo);
     if (e.elite) {
       addPickup(cx - 14, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
       addPickup(cx + 14, cy, 'boost');
