@@ -230,6 +230,7 @@
     sound('turretBoom');
     shake = Math.max(shake, 12);
     UBG.score += 50;
+    if (UBG.prog) UBG.prog.addCredits(35);
 
     const remaining = (b.turrets || []).filter(item => item.hp > 0).length;
     if (remaining === 0) {
@@ -357,6 +358,7 @@
 
   function resetWorld() {
     const spec = SHIP_SPECS[selectedShip] || SHIP_SPECS.viper;
+    const progStats = UBG.prog ? UBG.prog.getStats() : null;
     UBG.score = 0; UBG.best = 0; grazeCount = 0; maxCombo = 1; bossesKilled = 0;
     shake = 0; combo = 0; comboLeft = 0; gridScroll = 0;
     spawnClock = 40; asteroidClock = 55; orbClock = 380; grazeSoundCool = 0; laserTick = 0; eventClock = 640; missileClock = 0;
@@ -367,9 +369,24 @@
       type: selectedShip,
       spec,
       x: W / 2 - 23, y: H - 110, w: 46, h: 55,
-      shield: spec.startShield, rapid: 0, speed: 0, beam: 0, drone: 0, droneAngle: 0,
-      invuln: 150, cool: 0, boostEnergy: 50, boostTimer: 0,
-      mods: { extraGuns: 0, fireRateMult: 1, damageMult: 1, magnetRange: 0, boostChargeMult: 1, missiles: 0 }
+      shield: Math.max(spec.startShield, progStats ? progStats.startShield : 0),
+      rapid: 0,
+      speed: 0,
+      beam: 0,
+      drone: progStats ? progStats.startDrone : 0,
+      droneAngle: 0,
+      invuln: 150,
+      cool: 0,
+      boostEnergy: Math.min(100, 50 + (progStats ? progStats.startBoost : 0)),
+      boostTimer: 0,
+      mods: {
+        extraGuns: 0,
+        fireRateMult: progStats ? progStats.fireRateMult : 1,
+        damageMult: progStats ? progStats.damageMult : 1,
+        magnetRange: progStats ? progStats.magnetRange : 0,
+        boostChargeMult: progStats ? progStats.boostChargeMult : 1,
+        missiles: progStats ? progStats.startMissiles : 0
+      }
     };
     enemies = []; bullets = []; shots = []; missiles = []; asteroids = [];
     particles = []; sparks = []; shocks = []; floatTexts = []; pickups = []; UBG.trail = [];
@@ -405,6 +422,7 @@
     sound('boom');
     addShock(UBG.ship.x + UBG.ship.w / 2, UBG.ship.y + UBG.ship.h / 2, '#fb376b', 95);
     updateBgmLoop();
+    if (UBG.prog) UBG.prog.onRunEnd(UBG.score);
     if (UBG.score > UBG.best) {
       UBG.best = Math.floor(UBG.score);
       try { localStorage.setItem('ubg_best', String(UBG.best)); } catch (e) {}
@@ -453,6 +471,7 @@
     combo++;
     if (combo > maxCombo) maxCombo = combo;
     comboLeft = 210;
+    if (UBG.prog) UBG.prog.onEnemyKill(false, combo, e.elite ? 18 : (heavy ? 10 : 6));
     const eventMult = cosmicEvent?.type === 'METEOR' ? 1.5 : 1;
     const gained = Math.round(e.points * Math.min(combo, 8) * eventMult);
     UBG.score += gained;
@@ -461,7 +480,10 @@
     if (ship) {
       ship.boostEnergy = Math.min(100, ship.boostEnergy + (e.elite ? 28 : (heavy ? 11 : 6)) * ship.spec.boostGainMult * ship.mods.boostChargeMult);
     }
-    if (combo > 1) UBG.playComboKill(combo);
+    if (combo > 1) {
+      if (UBG.playComboKill) UBG.playComboKill(combo);
+      else sound('combo');
+    }
     if (e.elite) {
       addPickup(cx - 14, cy, ['rapid', 'shield', 'speed', 'beam', 'drone'][Math.floor(Math.random() * 5)]);
       addPickup(cx + 14, cy, 'boost');
@@ -690,6 +712,7 @@
     if (isDread) addPickup(cx, cy + 12, 'boost');
     UBG.score += bonusPts;
     bossesKilled++;
+    if (UBG.prog) UBG.prog.onEnemyKill(true, combo, isDread ? 200 : 120);
     UBG.boss = null;
     bossLevel++;
     bossAt = UBG.score + 300;
@@ -844,7 +867,6 @@
     shots.forEach(s => { s.x += s.vx * playerDt; s.y += s.vy * playerDt; });
     shots = shots.filter(s => s.y > -30 && s.x > -30 && s.x < W + 30);
 
-    // Cập nhật Tên lửa tầm nhiệt (tự khóa mục tiêu gần nhất kể cả pháo đài cánh Boss)
     for (let i = missiles.length - 1; i >= 0; i--) {
       const m = missiles[i];
       m.life -= playerDt;
@@ -988,7 +1010,6 @@
         shake = Math.max(shake, 11);
       }
 
-      // Cập nhật & khai hỏa 2 Pháo Đài Cánh của Dreadnought
       if (b.turrets) {
         const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
         b.turrets.forEach(t => {
@@ -1043,7 +1064,6 @@
         if (b.kind === 'DREADNOUGHT') {
           b.volleyCount = (b.volleyCount || 0) + 1;
           if (b.volleyCount % 2 === 1) {
-            // Quạt đạn pháo hạng nặng từ pháo đài trung tâm
             const spreadCount = enragedNow ? 5 : 4;
             for (let k = -spreadCount; k <= spreadCount; k++) {
               const a = Math.PI / 2 + k * 0.17;
@@ -1059,7 +1079,6 @@
               });
             }
           } else {
-            // Loạt đạn đôi xuyên tâm ép góc
             [-36, 0, 36].forEach(off => {
               bullets.push({
                 x: cx + off,
@@ -1116,7 +1135,6 @@
         }
       }
 
-      // Kiểm tra va chạm đạn người chơi với 2 Pháo Đài Cánh trước, sau đó mới đến thân chính
       for (let j = shots.length - 1; j >= 0; j--) {
         const s = shots[j];
         let hitTurret = false;
@@ -1173,6 +1191,7 @@
       if (!b.grazed && dist < b.r + ship.spec.grazeR && ship.invuln <= 0) {
         b.grazed = true;
         grazeCount++;
+        if (UBG.prog) UBG.prog.onGraze();
         UBG.score += ship.spec.grazeScore;
         ship.boostEnergy = Math.min(100, ship.boostEnergy + 1.6 * ship.spec.boostGainMult * ship.mods.boostChargeMult);
         if (grazeSoundCool <= 0) { sound('graze'); grazeSoundCool = 5; }
