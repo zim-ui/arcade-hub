@@ -1,68 +1,39 @@
 (() => {
   'use strict';
   const UBG = (window.UBG = window.UBG || {});
-  const SAVE_KEY = 'ubg_dsd_progression_v1';
-
-  const SHIPS = [
-    {
-      id: 'interceptor',
-      name: 'INTERCEPTOR',
-      tag: 'Cân bằng',
-      cost: 0,
-      color: '#22d3ee',
-      desc: 'Phi thuyền tiêu chuẩn, dễ điều khiển.',
-      bonus: { hp: 0, dmg: 1.0, spd: 1.0, rate: 1.0, shield: 0, cr: 1.0 }
-    },
-    {
-      id: 'juggernaut',
-      name: 'JUGGERNAUT',
-      tag: 'Hạng nặng',
-      cost: 600,
-      color: '#f97316',
-      desc: '+3 Máu tối đa, +25% Sát thương, chậm hơn 10%.',
-      bonus: { hp: 3, dmg: 1.25, spd: 0.9, rate: 1.0, shield: 0, cr: 1.0 }
-    },
-    {
-      id: 'phantom',
-      name: 'PHANTOM',
-      tag: 'Tốc độ',
-      cost: 1200,
-      color: '#c084fc',
-      desc: '+22% Tốc độ bay, +20% Tốc độ bắn, -1 Máu.',
-      bonus: { hp: -1, dmg: 1.0, spd: 1.22, rate: 1.2, shield: 0, cr: 1.1 }
-    },
-    {
-      id: 'valkyrie',
-      name: 'VALKYRIE',
-      tag: 'Huyền thoại',
-      cost: 2200,
-      color: '#facc15',
-      desc: '+20% Sát thương, +1 Khiên khởi đầu, +30% Tinh Thạch.',
-      bonus: { hp: 1, dmg: 1.2, spd: 1.08, rate: 1.1, shield: 1, cr: 1.3 }
-    }
-  ];
+  const SAVE_KEY = 'ubg_dsd_progression_v2';
 
   const UPGRADES = [
-    { id: 'hull', name: 'Giáp Gia Cố', desc: '+1 Máu tối đa mỗi cấp', max: 5, baseCost: 120, mult: 1.7 },
-    { id: 'core', name: 'Lõi Hỏa Lực', desc: '+12% Sát thương mỗi cấp', max: 5, baseCost: 150, mult: 1.75 },
-    { id: 'engine', name: 'Động Cơ Ion', desc: '+8% Tốc độ bắn & bay', max: 5, baseCost: 140, mult: 1.7 },
-    { id: 'shield', name: 'Khiên Khởi Đầu', desc: '+1 Lớp khiên khi vào trận', max: 3, baseCost: 250, mult: 2.0 }
+    { id: 'damage', name: 'Lõi Hỏa Lực', desc: '+10% Sát thương mọi vũ khí mỗi cấp', max: 5, baseCost: 120, mult: 1.75 },
+    { id: 'firerate', name: 'Ép Xung Nòng Bắn', desc: '+8% Tốc độ xả đạn mỗi cấp', max: 5, baseCost: 140, mult: 1.75 },
+    { id: 'boost', name: 'Lò Phản Ứng Overdrive', desc: '+15% Tốc độ nạp & +10% Năng lượng đầu trận', max: 5, baseCost: 130, mult: 1.7 },
+    { id: 'magnet', name: 'Nam Châm Lượng Tử', desc: '+65px Tầm hút vật phẩm mỗi cấp', max: 4, baseCost: 110, mult: 1.65 },
+    { id: 'missile', name: 'Khoang Tên Lửa', desc: 'Vào trận có sẵn +1 Tên lửa tầm nhiệt', max: 2, baseCost: 320, mult: 2.2 },
+    { id: 'drone', name: 'Phi Đội Vệ Tinh', desc: '+15 giây Drone hỗ trợ ngay khi xuất phát', max: 3, baseCost: 260, mult: 1.9 },
+    { id: 'shield', name: 'Khiên Aegis Khởi Đầu', desc: 'Vào trận có sẵn 1 lớp Khiên bảo vệ', max: 1, baseCost: 400, mult: 1 }
+  ];
+
+  const RANKS = [
+    { name: 'TÂN BINH VŨ TRỤ', reqKills: 0, bonusCr: 1.0, color: '#94a3b8' },
+    { name: 'PHI CÔNG CHIẾN ĐẤU', reqKills: 60, bonusCr: 1.1, color: '#38bdf8' },
+    { name: 'ĐỘI TRƯỞNG HẠM ĐỘI', reqKills: 180, bonusCr: 1.2, color: '#a855f7' },
+    { name: 'THỢ SĂN DREADNOUGHT', reqKills: 400, bonusCr: 1.35, color: '#f97316' },
+    { name: 'HUYỀN THOẠI NGÂN HÀ', reqKills: 800, bonusCr: 1.5, color: '#facc15' }
   ];
 
   const MISSION_TEMPLATES = [
-    { id: 'kills', title: 'Thợ Săn Vũ Trụ', desc: (t) => `Tiêu diệt ${t} tàu địch`, baseTarget: 30, step: 35, reward: 150 },
-    { id: 'bosses', title: 'Sát Thủ Boss', desc: (t) => `Hạ gục ${t} Boss`, baseTarget: 1, step: 2, reward: 300 },
-    { id: 'combo', title: 'Bậc Thầy Combo', desc: (t) => `Đạt chuỗi Combo x${t}`, baseTarget: 8, step: 6, reward: 200 }
+    { id: 'kills', title: 'Thợ Săn Vũ Trụ', desc: (t) => `Tiêu diệt ${t} tàu địch`, baseTarget: 35, step: 40, reward: 150 },
+    { id: 'bosses', title: 'Sát Thủ Boss', desc: (t) => `Hạ gục ${t} Boss khổng lồ`, baseTarget: 1, step: 2, reward: 320 },
+    { id: 'combo', title: 'Bậc Thầy Combo', desc: (t) => `Đạt chuỗi Combo x${t}`, baseTarget: 10, step: 6, reward: 220 },
+    { id: 'grazes', title: 'Nghệ Sĩ Lướt Đạn', desc: (t) => `Tích lũy ${t} lần lướt sát đạn (Graze)`, baseTarget: 40, step: 50, reward: 180 }
   ];
 
   function defaultData() {
     return {
       credits: 0,
-      selectedShip: 'interceptor',
-      ownedShips: ['interceptor'],
-      upgrades: { hull: 0, core: 0, engine: 0, shield: 0 },
-      stats: { kills: 0, bosses: 0, maxCombo: 0 },
-      missionTier: { kills: 0, bosses: 0, combo: 0 }
+      upgrades: { damage: 0, firerate: 0, boost: 0, magnet: 0, missile: 0, drone: 0, shield: 0 },
+      stats: { kills: 0, bosses: 0, maxCombo: 0, grazes: 0 },
+      missionTier: { kills: 0, bosses: 0, combo: 0, grazes: 0 }
     };
   }
 
@@ -82,6 +53,14 @@
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
   }
 
+  function getCurrentRank() {
+    let current = RANKS[0];
+    for (const r of RANKS) {
+      if (data.stats.kills >= r.reqKills) current = r;
+    }
+    return current;
+  }
+
   function getUpgradeCost(u) {
     const lv = data.upgrades[u.id] || 0;
     return Math.round(u.baseCost * Math.pow(u.mult, lv));
@@ -90,25 +69,25 @@
   function getMissionInfo(m) {
     const tier = data.missionTier[m.id] || 0;
     const target = m.baseTarget + tier * m.step;
-    const reward = Math.round(m.reward * (1 + tier * 0.6));
-    const current = m.id === 'combo' ? data.stats.maxCombo : data.stats[m.id];
+    const reward = Math.round(m.reward * (1 + tier * 0.55));
+    const current = m.id === 'combo' ? data.stats.maxCombo : (data.stats[m.id] || 0);
     return { target, reward, current, done: current >= target };
   }
 
-  // API để main.js gọi
   UBG.prog = {
     getData: () => data,
     getStats() {
-      const ship = SHIPS.find((s) => s.id === data.selectedShip) || SHIPS[0];
+      const rank = getCurrentRank();
       return {
-        shipId: ship.id,
-        shipColor: ship.color,
-        bonusHp: ship.bonus.hp + (data.upgrades.hull || 0),
-        dmgMult: ship.bonus.dmg * (1 + (data.upgrades.core || 0) * 0.12),
-        speedMult: ship.bonus.spd * (1 + (data.upgrades.engine || 0) * 0.08),
-        fireRateMult: ship.bonus.rate * (1 + (data.upgrades.engine || 0) * 0.08),
-        startShield: ship.bonus.shield + (data.upgrades.shield || 0),
-        creditMult: ship.bonus.cr
+        damageMult: 1 + (data.upgrades.damage || 0) * 0.1,
+        fireRateMult: Math.pow(0.92, data.upgrades.firerate || 0),
+        boostChargeMult: 1 + (data.upgrades.boost || 0) * 0.15,
+        startBoost: (data.upgrades.boost || 0) * 10,
+        magnetRange: (data.upgrades.magnet || 0) * 65,
+        startMissiles: data.upgrades.missile || 0,
+        startDrone: (data.upgrades.drone || 0) * 900,
+        startShield: data.upgrades.shield || 0,
+        creditMult: rank.bonusCr
       };
     },
     addCredits(amount) {
@@ -119,14 +98,18 @@
       updateBadge();
       return gained;
     },
-    onEnemyKill(isBoss = false, combo = 0) {
+    onEnemyKill(isBoss = false, combo = 0, baseCr = 6) {
       data.stats.kills += 1;
       if (isBoss) data.stats.bosses += 1;
       if (combo > data.stats.maxCombo) data.stats.maxCombo = combo;
-      this.addCredits(isBoss ? 120 : 6);
+      this.addCredits(baseCr);
+    },
+    onGraze() {
+      data.stats.grazes = (data.stats.grazes || 0) + 1;
+      if (data.stats.grazes % 5 === 0) save();
     },
     onRunEnd(score = 0) {
-      const bonus = Math.floor(score / 150);
+      const bonus = Math.floor(score / 120);
       if (bonus > 0) this.addCredits(bonus);
       save();
       updateBadge();
@@ -153,14 +136,14 @@
     }
     #ubg-hangar-modal {
       position: fixed; inset: 0; z-index: 9999; display: none;
-      background: rgba(2, 6, 23, 0.86); backdrop-filter: blur(6px);
+      background: rgba(2, 6, 23, 0.88); backdrop-filter: blur(6px);
       align-items: center; justify-content: center; padding: 16px;
       font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0;
     }
     .ubg-h-box {
-      width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto;
+      width: 100%; max-width: 660px; max-height: 88vh; overflow-y: auto;
       background: #0f172a; border: 1px solid #334155; border-radius: 16px;
-      padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.75);
     }
     .ubg-h-head {
       display: flex; justify-content: space-between; align-items: center;
@@ -177,7 +160,7 @@
       background: #1e293b; color: #94a3b8; font-weight: 700; cursor: pointer;
     }
     .ubg-h-tab.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
-    .ubg-h-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+    .ubg-h-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
     .ubg-h-card {
       background: #1e293b; border: 1px solid #334155; border-radius: 12px;
       padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
@@ -187,7 +170,6 @@
       cursor: pointer; background: #0ea5e9; color: #020617;
     }
     .ubg-h-act:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-    .ubg-h-act.equipped { background: #10b981; color: #022c22; }
     .ubg-h-act.claim { background: #facc15; color: #422006; }
     .ubg-h-close {
       background: #334155; color: #fff; border: none; border-radius: 8px;
@@ -208,7 +190,7 @@
       <div class="ubg-h-head">
         <div>
           <div style="font-size:18px;font-weight:800;color:#38bdf8;">🚀 XƯỞNG ĐỘ TÀU (HANGAR)</div>
-          <div style="font-size:12px;color:#94a3b8;">Nâng cấp vĩnh viễn • Áp dụng ngay ván sau</div>
+          <div id="ubg-h-rank" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="ubg-h-cr" id="ubg-h-cr">0 CR</div>
@@ -216,9 +198,9 @@
         </div>
       </div>
       <div class="ubg-h-tabs">
-        <button class="ubg-h-tab active" data-tab="upgrades">⚡ Nâng Cấp</button>
-        <button class="ubg-h-tab" data-tab="ships">🛸 Phi Thuyền</button>
+        <button class="ubg-h-tab active" data-tab="upgrades">⚡ Nâng Cấp Tàu</button>
         <button class="ubg-h-tab" data-tab="missions">🎯 Nhiệm Vụ</button>
+        <button class="ubg-h-tab" data-tab="ranks">🎖️ Quân Hàm</button>
       </div>
       <div id="ubg-h-body" class="ubg-h-grid"></div>
     </div>
@@ -231,8 +213,11 @@
     const mini = document.getElementById('ubg-cr-mini');
     const crEl = document.getElementById('ubg-h-cr');
     const dot = document.getElementById('ubg-hangar-dot');
+    const rankEl = document.getElementById('ubg-h-rank');
+    const rank = getCurrentRank();
     if (mini) mini.textContent = `${data.credits} CR`;
     if (crEl) crEl.textContent = `${data.credits} CR`;
+    if (rankEl) rankEl.innerHTML = `Cấp bậc: <b style="color:${rank.color}">${rank.name}</b> (Thưởng Tinh Thạch x${rank.bonusCr})`;
     const hasClaim = MISSION_TEMPLATES.some((m) => getMissionInfo(m).done);
     if (dot) dot.style.display = hasClaim ? 'inline-block' : 'none';
   }
@@ -272,41 +257,7 @@
         };
         body.appendChild(card);
       });
-    } else if (activeTab === 'ships') {
-      SHIPS.forEach((s) => {
-        const owned = data.ownedShips.includes(s.id);
-        const equipped = data.selectedShip === s.id;
-        const card = document.createElement('div');
-        card.className = 'ubg-h-card';
-        card.style.borderColor = equipped ? s.color : '#334155';
-        card.innerHTML = `
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:800;color:${s.color};">${s.name}</span>
-              <span style="font-size:11px;background:#0f172a;padding:2px 8px;border-radius:99px;">${s.tag}</span>
-            </div>
-            <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">${s.desc}</div>
-          </div>
-          <button class="ubg-h-act ${equipped ? 'equipped' : ''}" ${!owned && data.credits < s.cost ? 'disabled' : ''}>
-            ${equipped ? '✓ ĐANG TRANG BỊ' : owned ? 'CHỌN TÀU NÀY' : `MỞ KHÓA (${s.cost} CR)`}
-          </button>
-        `;
-        card.querySelector('button').onclick = () => {
-          if (owned) {
-            data.selectedShip = s.id;
-            if (UBG.sound) UBG.sound('pickup');
-          } else if (data.credits >= s.cost) {
-            data.credits -= s.cost;
-            data.ownedShips.push(s.id);
-            data.selectedShip = s.id;
-            if (UBG.sound) UBG.sound('upgrade');
-          }
-          save();
-          render();
-        };
-        body.appendChild(card);
-      });
-    } else {
+    } else if (activeTab === 'missions') {
       MISSION_TEMPLATES.forEach((m) => {
         const info = getMissionInfo(m);
         const pct = Math.min(100, Math.round((info.current / info.target) * 100));
@@ -337,6 +288,28 @@
         };
         body.appendChild(card);
       });
+    } else {
+      RANKS.forEach((r) => {
+        const unlocked = data.stats.kills >= r.reqKills;
+        const card = document.createElement('div');
+        card.className = 'ubg-h-card';
+        card.style.borderColor = unlocked ? r.color : '#334155';
+        card.innerHTML = `
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:800;color:${r.color};">${r.name}</span>
+              <span style="font-size:11px;background:#0f172a;padding:2px 8px;border-radius:99px;">x${r.bonusCr} CR</span>
+            </div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:6px;">
+              Yêu cầu: Hạ ${r.reqKills} tàu địch (Hiện tại: ${data.stats.kills})
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:${unlocked ? '#4ade80' : '#64748b'};">
+            ${unlocked ? '✓ ĐÃ ĐẠT QUÂN HÀM' : '🔒 CHƯA MỞ KHÓA'}
+          </div>
+        `;
+        body.appendChild(card);
+      });
     }
   }
 
@@ -356,6 +329,11 @@
       render();
     };
   });
+
+  // Tự ẩn nút Hangar khi đang bay chiến đấu để tránh bấm nhầm
+  setInterval(() => {
+    btn.style.display = UBG.state === 'PLAYING' ? 'none' : 'flex';
+  }, 250);
 
   updateBadge();
 })();
